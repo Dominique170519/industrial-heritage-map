@@ -8,7 +8,7 @@ export default function DisclaimerPage() {
 
         <div className="mt-6 space-y-5 text-sm leading-8 text-slate-700">
           <p>
-            寻厂 · 工业遗产地图是一个用于展示工业遗产基础信息的轻量网站 MVP，
+            锈迹地图 · Industrial Heritage Map 是一个用于展示工业遗产基础信息的轻量网站 MVP，
             当前数据来自本地 JSON 示例，并不代表官方名录、法定保护清单或实时开放信息。
           </p>
 

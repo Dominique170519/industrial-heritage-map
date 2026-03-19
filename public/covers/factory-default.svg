@@ -1,0 +1,19 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="900" fill="#E7E5E4"/>
+  <rect x="0" y="640" width="1600" height="260" fill="#D6D3D1"/>
+  <rect x="120" y="340" width="360" height="300" fill="#78716C"/>
+  <rect x="480" y="280" width="360" height="360" fill="#57534E"/>
+  <rect x="840" y="380" width="280" height="260" fill="#78716C"/>
+  <rect x="1120" y="240" width="120" height="400" fill="#44403C"/>
+  <rect x="1280" y="180" width="100" height="460" fill="#57534E"/>
+  <rect x="150" y="390" width="70" height="70" fill="#E7E5E4"/>
+  <rect x="250" y="390" width="70" height="70" fill="#E7E5E4"/>
+  <rect x="350" y="390" width="70" height="70" fill="#E7E5E4"/>
+  <rect x="530" y="340" width="80" height="80" fill="#E7E5E4"/>
+  <rect x="650" y="340" width="80" height="80" fill="#E7E5E4"/>
+  <rect x="530" y="460" width="80" height="80" fill="#E7E5E4"/>
+  <rect x="650" y="460" width="80" height="80" fill="#E7E5E4"/>
+  <path d="M0 210C160 260 320 260 480 210C640 160 800 160 960 210C1120 260 1280 260 1440 210C1520 186.667 1573.33 173.333 1600 170V0H0V210Z" fill="#F5F5F4"/>
+  <text x="120" y="120" fill="#44403C" font-family="Arial, sans-serif" font-size="54" font-weight="700">寻厂 · 工业遗产地图</text>
+  <text x="120" y="180" fill="#57534E" font-family="Arial, sans-serif" font-size="28">Industrial Heritage Map MVP Placeholder</text>
+</svg>

@@ -14,7 +14,7 @@ export default function HomePage() {
             Industrial Heritage Map
           </p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-            锈迹地图
+            锈迹·工业遗产地图
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-8 text-slate-700">
             一个面向工业遗产爱好者、研究者与城市观察者的轻量地图工具。

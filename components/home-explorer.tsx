@@ -73,7 +73,10 @@ export default function HomeExplorer({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-3xl border border-stone-300 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.08)] sm:p-8">
+      <section
+        id="map-explorer"
+        className="rounded-3xl border border-stone-300 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.08)] sm:p-8"
+      >
         <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Map Explorer</p>
         <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>

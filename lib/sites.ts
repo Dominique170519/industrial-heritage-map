@@ -51,6 +51,8 @@ export function normalizeSite(raw: RawSiteRecord): Site {
     lng: Number(raw.lng ?? 0),
     category,
     status,
+    featured: Boolean(raw.featured),
+    featuredOrder: normalizeFeaturedOrder(raw.featuredOrder),
     level,
     batch,
     era,
@@ -131,6 +133,10 @@ export function filterSites(items: Site[], filters: SiteFilters): Site[] {
   });
 }
 
+export function getFeaturedSites(): Site[] {
+  return sites.filter((site) => site.featured).sort((a, b) => a.featuredOrder - b.featuredOrder);
+}
+
 export function getPrimarySiteImage(site: Site): SiteImage {
   return site.images?.[0] ?? { url: DEFAULT_IMAGE_URL, alt: site.name };
 }
@@ -197,6 +203,10 @@ function normalizeEra(era: string | undefined, year: number | undefined): string
   }
 
   return undefined;
+}
+
+function normalizeFeaturedOrder(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : Number.MAX_SAFE_INTEGER;
 }
 
 function normalizeImages(

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import HomeExplorer from "@/components/home-explorer";
-import { getAllSites, getSiteFilterOptions } from "@/lib/sites";
+import FeaturedSiteList from "@/components/featured-site-list";
+import { getAllSites, getFeaturedSites, getSiteFilterOptions } from "@/lib/sites";
 
 export default function HomePage() {
   const sites = getAllSites();
+  const featuredSites = getFeaturedSites().slice(0, 8);
   const options = getSiteFilterOptions();
 
   return (
@@ -40,6 +42,29 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+
+      {featuredSites.length > 0 ? (
+        <section className="rounded-3xl border border-stone-300 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.08)] sm:p-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Featured Sites</p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                精选工业遗产
+              </h2>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600 sm:text-base">
+                从江浙出发，发现值得一看的工业遗产点位。
+              </p>
+            </div>
+            <a href="#map-explorer" className="text-sm font-medium text-slate-900 underline underline-offset-4">
+              继续使用地图筛选
+            </a>
+          </div>
+
+          <div className="mt-6">
+            <FeaturedSiteList sites={featuredSites} />
+          </div>
+        </section>
+      ) : null}
 
       <HomeExplorer sites={sites} options={options} />
 

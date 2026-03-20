@@ -46,6 +46,8 @@ export interface SiteRecord {
   lng: number;
   category: SiteCategory;
   status: SiteStatus;
+  featured: boolean;
+  featuredOrder: number;
   level?: string;
   batch?: string;
   era?: string;

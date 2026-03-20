@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { getPrimarySiteImage } from "@/lib/sites";
 import type { Site } from "@/types/site";
 
 function MetaTag({ children }: { children: React.ReactNode }) {
@@ -12,6 +13,8 @@ function MetaTag({ children }: { children: React.ReactNode }) {
 }
 
 export default function SiteCard({ site }: { site: Site }) {
+  const image = getPrimarySiteImage(site);
+
   return (
     <Link
       href={`/sites/${site.id}`}
@@ -19,8 +22,8 @@ export default function SiteCard({ site }: { site: Site }) {
     >
       <div className="aspect-[16/9] overflow-hidden bg-stone-100">
         <img
-          src={site.coverImage}
-          alt={site.name}
+          src={image.url}
+          alt={image.alt ?? site.name}
           className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
         />
       </div>
@@ -29,19 +32,18 @@ export default function SiteCard({ site }: { site: Site }) {
         <div>
           <h3 className="text-base font-semibold text-slate-900">{site.name}</h3>
           <p className="mt-1 text-sm text-slate-500">
-            {site.city} · {site.district}
+            {site.provinceFull} · {site.primaryCity}
+            {site.district ? ` · ${site.district}` : ""}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <MetaTag>{site.type}</MetaTag>
-          <MetaTag>{site.status}</MetaTag>
-          <MetaTag>{site.year} 年</MetaTag>
+          <MetaTag>{site.category}</MetaTag>
+          {site.batch ? <MetaTag>{site.batch}</MetaTag> : null}
+          {site.level ? <MetaTag>{site.level}</MetaTag> : null}
         </div>
 
-        <p className="line-clamp-3 text-sm leading-6 text-slate-700">
-          {site.summary}
-        </p>
+        <p className="line-clamp-3 text-sm leading-6 text-slate-700">{site.description}</p>
       </div>
     </Link>
   );

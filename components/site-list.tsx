@@ -7,7 +7,7 @@ export default function SiteList({ sites }: { sites: Site[] }) {
   if (sites.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-stone-300 bg-white p-8 text-center text-sm text-slate-500">
-        没有匹配到点位，请调整筛选条件。
+        没有匹配到点位，请调整筛选条件，或尝试清空关键词后重试。
       </div>
     );
   }

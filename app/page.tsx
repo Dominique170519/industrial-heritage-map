@@ -18,7 +18,7 @@ export default function HomePage() {
           </h1>
           <p className="mt-4 max-w-3xl text-base leading-8 text-slate-700">
             一个面向工业遗产爱好者、研究者与城市观察者的轻量地图工具。
-            你可以按城市、类型、开放状态筛选点位，并进入单点档案页查看基础信息。
+            你可以按省份、城市、类别、级别、批次与关键词筛选点位，并进入单点档案页查看基础信息。
           </p>
         </div>
 
@@ -26,7 +26,7 @@ export default function HomePage() {
           <h2 className="text-base font-semibold text-slate-900">MVP 范围</h2>
           <ul className="mt-4 space-y-2 text-sm leading-7 text-slate-700">
             <li>• 首页地图</li>
-            <li>• 城市 / 类型 / 状态筛选</li>
+            <li>• 省份 / 城市 / 类别 / 级别 / 批次 / 关键词筛选</li>
             <li>• 点位列表</li>
             <li>• 点位详情页</li>
             <li>• 免责声明</li>

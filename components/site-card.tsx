@@ -21,6 +21,7 @@ export default function SiteCard({ site }: { site: Site }) {
       className="group overflow-hidden rounded-2xl border border-stone-300 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-slate-400"
     >
       <div className="aspect-[16/9] overflow-hidden bg-stone-100">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={image.url}
           alt={image.alt ?? site.name}

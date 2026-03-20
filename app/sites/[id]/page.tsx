@@ -35,6 +35,7 @@ export default async function SiteDetailPage({
 
       <article className="overflow-hidden rounded-3xl border border-stone-300 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
         <div className="aspect-[16/7] overflow-hidden bg-stone-100">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={image.url} alt={image.alt ?? site.name} className="h-full w-full object-cover" />
         </div>
 

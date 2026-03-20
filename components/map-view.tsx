@@ -75,6 +75,7 @@ export default function MapView({ sites }: { sites: Site[] }) {
               <Popup>
                 <div className="w-[220px]">
                   <div className="mb-2 overflow-hidden rounded-lg border border-stone-200">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={image.url}
                       alt={image.alt ?? site.name}

@@ -8,10 +8,16 @@ import {
   type RawSiteRecord,
   type Site,
   type SiteCategory,
+  type SiteFacetCounts,
   type SiteFilterKey,
+  type SiteFilterOption,
   type SiteFilterOptions,
   type SiteFilters,
   type SiteImage,
+  type SiteMapBounds,
+  type SiteMapMarkerState,
+  type SiteMapRelationLevel,
+  type SiteRegionStat,
   type SiteStatus,
 } from "@/types/site";
 
@@ -33,6 +39,15 @@ export interface SiteMarkerTone {
   stroke: string;
   ring: string;
   shadow: string;
+}
+
+export interface SiteExplorationPath {
+  key: "category" | "region" | "timeline";
+  title: string;
+  description: string;
+  filterLabel: string;
+  href: string;
+  resultCount: number;
 }
 
 const SITE_MARKER_TONES: Record<SiteStatusGroup, SiteMarkerTone> = {
@@ -135,24 +150,66 @@ export function sortSites(items: Site[]): Site[] {
 
 export function buildSiteFilterOptions(items: Site[]): SiteFilterOptions {
   return {
-    provinces: uniqueSorted(items.map((site) => site.provinceFull)),
-    cities: uniqueSorted(items.map((site) => site.primaryCity)),
-    categories: uniqueSorted(items.map((site) => site.category)),
-    statuses: uniqueSorted(items.map((site) => site.status)) as SiteStatus[],
-    levels: uniqueSorted(items.map((site) => site.level ?? "")),
-    batches: uniqueSorted(items.map((site) => site.batch ?? "")),
+    provinces: toFilterOptions(uniqueSorted(items.map((site) => site.provinceFull))),
+    cities: toFilterOptions(uniqueSorted(items.map((site) => site.primaryCity))),
+    categories: toFilterOptions(uniqueSorted(items.map((site) => site.category))),
+    statuses: toFilterOptions(uniqueSorted(items.map((site) => site.status))),
+    levels: toFilterOptions(uniqueSorted(items.map((site) => site.level ?? ""))),
+    batches: toFilterOptions(uniqueSorted(items.map((site) => site.batch ?? ""))),
   };
 }
 
 export function buildLinkedSiteFilterOptions(items: Site[], filters: SiteFilters): SiteFilterOptions {
   return {
-    provinces: getLinkedSiteFilterValues(items, filters, "province"),
-    cities: getLinkedSiteFilterValues(items, filters, "city"),
-    categories: getLinkedSiteFilterValues(items, filters, "category"),
-    statuses: getLinkedSiteFilterValues(items, filters, "status") as SiteStatus[],
-    levels: getLinkedSiteFilterValues(items, filters, "level"),
-    batches: getLinkedSiteFilterValues(items, filters, "batch"),
+    provinces: toFilterOptions(getLinkedSiteFilterValues(items, filters, "province")),
+    cities: toFilterOptions(getLinkedSiteFilterValues(items, filters, "city")),
+    categories: toFilterOptions(getLinkedSiteFilterValues(items, filters, "category")),
+    statuses: toFilterOptions(getLinkedSiteFilterValues(items, filters, "status")),
+    levels: toFilterOptions(getLinkedSiteFilterValues(items, filters, "level")),
+    batches: toFilterOptions(getLinkedSiteFilterValues(items, filters, "batch")),
   };
+}
+
+export function getSiteRegionStats(items: Site[], limit = 8): SiteRegionStat[] {
+  return getCountEntries(items.map((site) => site.provinceFull)).slice(0, limit);
+}
+
+export function getSiteFacetCounts(items: Site[], filters: SiteFilters): SiteFacetCounts {
+  return {
+    provinces: getFacetCountMap(items, filters, "province", (site) => site.provinceFull),
+    cities: getFacetCountMap(items, filters, "city", (site) => site.primaryCity),
+    categories: getFacetCountMap(items, filters, "category", (site) => site.category),
+    statuses: getFacetCountMap(items, filters, "status", (site) => site.status),
+    levels: getFacetCountMap(items, filters, "level", (site) => site.level ?? ""),
+    batches: getFacetCountMap(items, filters, "batch", (site) => site.batch ?? ""),
+  };
+}
+
+export function filterSitesInBounds(items: Site[], bounds: SiteMapBounds | null): Site[] {
+  if (!bounds) {
+    return items;
+  }
+
+  return items.filter((site) => {
+    const isWithinLatitude = site.lat <= bounds.north && site.lat >= bounds.south;
+    const isWithinLongitude = bounds.west <= bounds.east
+      ? site.lng >= bounds.west && site.lng <= bounds.east
+      : site.lng >= bounds.west || site.lng <= bounds.east;
+
+    return isWithinLatitude && isWithinLongitude;
+  });
+}
+
+export function areSiteMapBoundsEqual(a: SiteMapBounds | null, b: SiteMapBounds | null): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  if (!a || !b) {
+    return false;
+  }
+
+  return a.north === b.north && a.south === b.south && a.east === b.east && a.west === b.west;
 }
 
 export function getSiteSearchText(site: Site): string {
@@ -293,6 +350,162 @@ export function getSiteFilterOptions(): SiteFilterOptions {
   return buildSiteFilterOptions(sites);
 }
 
+export function buildSiteExploreHref(filters: Partial<SiteFilters>, siteId?: string): string {
+  const nextFilters = {
+    ...createEmptySiteFilters(),
+    ...filters,
+  };
+  const searchParams = buildSiteSearchParams(nextFilters);
+
+  if (siteId?.trim()) {
+    searchParams.set("site", siteId.trim());
+  }
+
+  const query = searchParams.toString();
+  return query ? `/?${query}#map-explorer` : "/#map-explorer";
+}
+
+export function getExplorationPaths(currentSite: Site, allSites: Site[]): SiteExplorationPath[] {
+  const paths = [
+    buildCategoryExplorationPath(currentSite, allSites),
+    buildRegionExplorationPath(currentSite, allSites),
+    buildTimelineExplorationPath(currentSite, allSites),
+  ].filter((path): path is SiteExplorationPath => path !== null);
+
+  return paths;
+}
+
+export function getSiteMapRelationLevel(currentSite: Site | null, candidate: Site): SiteMapRelationLevel {
+  if (!currentSite) {
+    return "default";
+  }
+
+  if (currentSite.id === candidate.id) {
+    return "selected";
+  }
+
+  if (currentSite.category === candidate.category) {
+    if (currentSite.primaryCity === candidate.primaryCity) {
+      return "same-city";
+    }
+
+    if (currentSite.provinceFull === candidate.provinceFull) {
+      return "same-province";
+    }
+
+    return "same-category";
+  }
+
+  return "dimmed";
+}
+
+export function getSiteMapMarkerState(
+  relationshipSite: Site | null,
+  candidate: Site,
+  options: { selectedSiteId: string | null; hoveredSiteId: string | null },
+): SiteMapMarkerState {
+  const isSelected = options.selectedSiteId === candidate.id;
+  const isHovered = options.hoveredSiteId === candidate.id;
+  const relationLevel = isSelected ? "selected" : getSiteMapRelationLevel(relationshipSite, candidate);
+
+  return {
+    relationLevel,
+    isSelected,
+    isHovered,
+  };
+}
+
+function buildCategoryExplorationPath(currentSite: Site, allSites: Site[]): SiteExplorationPath | null {
+  const resultCount = filterSites(allSites, {
+    ...createEmptySiteFilters(),
+    category: currentSite.category,
+  }).length;
+
+  if (resultCount <= 1) {
+    return null;
+  }
+
+  return {
+    key: "category",
+    title: `继续看${currentSite.category}`,
+    description: "回到主地图后直接切到同类型点位，快速比较不同城市中的同类工业遗产。",
+    filterLabel: currentSite.category,
+    href: buildSiteExploreHref({ category: currentSite.category }, currentSite.id),
+    resultCount,
+  };
+}
+
+function buildRegionExplorationPath(currentSite: Site, allSites: Site[]): SiteExplorationPath | null {
+  const sameCityCount = filterSites(allSites, {
+    ...createEmptySiteFilters(),
+    city: currentSite.primaryCity,
+  }).length;
+
+  if (sameCityCount > 1) {
+    return {
+      key: "region",
+      title: `继续看${currentSite.primaryCity}`,
+      description: "回到主地图后聚焦同城市点位，观察当地工业遗产的聚集关系与空间分布。",
+      filterLabel: currentSite.primaryCity,
+      href: buildSiteExploreHref({ city: currentSite.primaryCity }, currentSite.id),
+      resultCount: sameCityCount,
+    };
+  }
+
+  const sameProvinceCount = filterSites(allSites, {
+    ...createEmptySiteFilters(),
+    province: currentSite.provinceFull,
+  }).length;
+
+  if (sameProvinceCount <= 1) {
+    return null;
+  }
+
+  return {
+    key: "region",
+    title: `继续看${currentSite.provinceFull}`,
+    description: "当前城市关联点位较少，回到主地图后扩大到同省范围继续浏览。",
+    filterLabel: currentSite.provinceFull,
+    href: buildSiteExploreHref({ province: currentSite.provinceFull }, currentSite.id),
+    resultCount: sameProvinceCount,
+  };
+}
+
+function buildTimelineExplorationPath(currentSite: Site, allSites: Site[]): SiteExplorationPath | null {
+  if (currentSite.era) {
+    const eraMatches = allSites.filter((site) => site.id !== currentSite.id && site.era === currentSite.era).length;
+
+    if (eraMatches > 0) {
+      return {
+        key: "timeline",
+        title: `继续看${currentSite.era}`,
+        description: "当前筛选系统未提供历史时期字段，因此先以关键词回跳到地图，继续查看同年代相关点位。",
+        filterLabel: currentSite.era,
+        href: buildSiteExploreHref({ keyword: currentSite.era }, currentSite.id),
+        resultCount: eraMatches + 1,
+      };
+    }
+  }
+
+  const sameStatusCount = filterSites(allSites, {
+    ...createEmptySiteFilters(),
+    status: currentSite.status,
+  }).length;
+
+  if (sameStatusCount <= 1) {
+    return null;
+  }
+
+  return {
+    key: "timeline",
+    title: `继续看${currentSite.status}`,
+    description: "当同年代线索较少时，回到主地图后改用相同开放状态继续筛选。",
+    filterLabel: currentSite.status,
+    href: buildSiteExploreHref({ status: currentSite.status }, currentSite.id),
+    resultCount: sameStatusCount,
+  };
+}
+
 function normalizeText(value: string | undefined): string | undefined {
   if (typeof value !== "string") {
     return undefined;
@@ -398,8 +611,50 @@ function createScopedSiteFilters(filters: SiteFilters, ignoredKey: LinkedSiteFil
   return nextFilters;
 }
 
-function sanitizeSiteFilterValue(value: string, options: string[]): string {
-  return !value || options.includes(value) ? value : "";
+function sanitizeSiteFilterValue(value: string, options: SiteFilterOption[]): string {
+  return !value || options.some((option) => option.value === value) ? value : "";
+}
+
+function toFilterOptions(values: string[], counts: Record<string, number> = {}): SiteFilterOption[] {
+  return values.map((value) => ({
+    value,
+    count: counts[value] ?? 0,
+    disabled: (counts[value] ?? 0) === 0,
+  }));
+}
+
+function getFacetCountMap(
+  items: Site[],
+  filters: SiteFilters,
+  key: LinkedSiteFilterKey,
+  getValue: (site: Site) => string,
+): Record<string, number> {
+  return toCountMap(filterSites(items, createScopedSiteFilters(filters, key)).map(getValue));
+}
+
+function toCountMap(values: string[]): Record<string, number> {
+  return Object.fromEntries(getCountEntries(values).map(({ value, count }) => [value, count]));
+}
+
+function getCountEntries(values: string[]): SiteRegionStat[] {
+  const counts = values.reduce<Record<string, number>>((accumulator, value) => {
+    if (!value) {
+      return accumulator;
+    }
+
+    accumulator[value] = (accumulator[value] ?? 0) + 1;
+    return accumulator;
+  }, {});
+
+  return Object.entries(counts)
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => {
+      if (b.count !== a.count) {
+        return b.count - a.count;
+      }
+
+      return a.value.localeCompare(b.value, "zh-CN");
+    });
 }
 
 function uniqueSorted(values: string[]): string[] {

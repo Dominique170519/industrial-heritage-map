@@ -4,7 +4,7 @@ import type { Site } from "@/types/site";
 
 function StatusTag({ status }: { status: Site["status"] }) {
   return (
-    <span className="inline-flex rounded-full border border-stone-300 bg-white/90 px-2.5 py-1 text-xs font-medium text-slate-700 backdrop-blur">
+    <span className="inline-flex rounded-full border border-[var(--industrial-accent-soft)] bg-[rgba(126,47,47,0.08)] px-2.5 py-1 text-xs font-medium text-[var(--industrial-accent)] backdrop-blur">
       {status}
     </span>
   );
@@ -12,7 +12,7 @@ function StatusTag({ status }: { status: Site["status"] }) {
 
 export default function FeaturedSiteList({ sites }: { sites: Site[] }) {
   return (
-    <div className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-3 lg:overflow-visible lg:pb-0">
+    <div className="flex gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-2 xl:grid-cols-3 lg:overflow-visible lg:pb-0">
       {sites.map((site) => {
         const image = getPrimarySiteImage(site);
 
@@ -20,7 +20,7 @@ export default function FeaturedSiteList({ sites }: { sites: Site[] }) {
           <Link
             key={site.id}
             href={`/sites/${site.id}`}
-            className="group min-w-[280px] overflow-hidden rounded-3xl border border-stone-300 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition duration-300 hover:scale-[1.02] hover:border-slate-400 lg:min-w-0"
+            className="group min-w-[280px] overflow-hidden rounded-[24px] border border-stone-200 bg-white shadow-[0_14px_34px_rgba(15,23,42,0.06)] transition duration-300 hover:-translate-y-1 hover:border-[var(--industrial-accent-soft)] hover:shadow-[0_18px_40px_rgba(15,23,42,0.09)] lg:min-w-0"
           >
             <div className="relative h-44 overflow-hidden bg-stone-100">
               {/* eslint-disable-next-line @next/next/no-img-element */}

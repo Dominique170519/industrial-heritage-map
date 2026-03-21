@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import SiteLocationMap from "@/components/site-location-map";
-import { getAllSites, getPrimarySiteImage, getSiteById } from "@/lib/sites";
+import SiteLocationMapClient from "@/components/site-location-map-client";
+import { buildSiteExploreHref, getAllSites, getExplorationPaths, getPrimarySiteImage, getSiteById } from "@/lib/sites";
 import type { Site } from "@/types/site";
 
 export function generateStaticParams() {
@@ -26,7 +26,10 @@ export default async function SiteDetailPage({
   const summary = site.description ?? "暂无摘要，待补充现场与文献资料。";
   const locationLabel = [site.provinceFull, site.primaryCity, site.district].filter(Boolean).join(" · ");
   const archiveMeta = [site.category, site.level, site.batch].filter(Boolean).slice(0, 3);
-  const relatedSites = getRelatedSites(site, getAllSites()).slice(0, 4);
+  const allSites = getAllSites();
+  const relatedSites = getRelatedSites(site, allSites).slice(0, 4);
+  const explorationPaths = getExplorationPaths(site, allSites);
+  const mapReturnHref = buildSiteExploreHref({ category: site.category }, site.id);
   const galleryImages = site.images?.slice(1, 4) ?? [];
   const hasGallery = galleryImages.length > 0;
 
@@ -190,15 +193,41 @@ export default async function SiteDetailPage({
               description="将单点档案页与主地图系统保持联系，提供清晰的空间坐标感。"
             >
               <div className="overflow-hidden rounded-[1.5rem] border border-stone-300 bg-stone-100">
-                <SiteLocationMap lat={site.lat} lng={site.lng} name={site.name} />
+                <SiteLocationMapClient lat={site.lat} lng={site.lng} name={site.name} />
               </div>
               <div className="mt-4 flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
                 <p>
                   当前坐标：<span className="font-medium text-slate-900">{formatCoordinates(site.lat, site.lng)}</span>
                 </p>
-                <Link href="/" className="inline-flex font-medium text-slate-900 underline underline-offset-4">
+                <Link href={mapReturnHref} className="inline-flex font-medium text-slate-900 underline underline-offset-4">
                   返回主地图继续筛选
                 </Link>
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              eyebrow="Continue Exploring"
+              title="继续探索"
+              description="从当前点位回到主页地图，并直接带入一组可继续浏览的筛选路径。"
+            >
+              <div className="grid gap-4 lg:grid-cols-3">
+                {explorationPaths.map((path) => (
+                  <Link
+                    key={path.key}
+                    href={path.href}
+                    className="group rounded-[1.5rem] border border-stone-300 bg-stone-50 p-5 transition hover:border-[var(--industrial-accent-soft)] hover:bg-white hover:shadow-[0_14px_32px_rgba(15,23,42,0.08)]"
+                  >
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{path.filterLabel}</p>
+                    <h3 className="mt-3 text-lg font-semibold text-slate-950 group-hover:text-[var(--industrial-accent)]">
+                      {path.title}
+                    </h3>
+                    <p className="mt-3 text-sm leading-7 text-slate-600">{path.description}</p>
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-stone-200 pt-4 text-sm">
+                      <span className="text-slate-500">匹配点位 {path.resultCount} 个</span>
+                      <span className="font-medium text-slate-900">回到地图 →</span>
+                    </div>
+                  </Link>
+                ))}
               </div>
             </SectionCard>
           </div>

@@ -102,13 +102,54 @@ export interface SiteFilters {
   keyword: string;
 }
 
+export interface SiteFilterOption {
+  value: string;
+  count: number;
+  disabled: boolean;
+}
+
 export interface SiteFilterOptions {
-  provinces: string[];
-  cities: string[];
-  categories: string[];
-  statuses: SiteStatus[];
-  levels: string[];
-  batches: string[];
+  provinces: SiteFilterOption[];
+  cities: SiteFilterOption[];
+  categories: SiteFilterOption[];
+  statuses: SiteFilterOption[];
+  levels: SiteFilterOption[];
+  batches: SiteFilterOption[];
+}
+
+export interface SiteRegionStat {
+  value: string;
+  count: number;
+}
+
+export interface SiteFacetCounts {
+  provinces: Record<string, number>;
+  cities: Record<string, number>;
+  categories: Record<string, number>;
+  statuses: Record<string, number>;
+  levels: Record<string, number>;
+  batches: Record<string, number>;
+}
+
+export type SiteMapRelationLevel =
+  | "default"
+  | "selected"
+  | "same-city"
+  | "same-province"
+  | "same-category"
+  | "dimmed";
+
+export interface SiteMapMarkerState {
+  relationLevel: SiteMapRelationLevel;
+  isSelected: boolean;
+  isHovered: boolean;
+}
+
+export interface SiteMapBounds {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
 }
 
 export type Site = SiteRecord;

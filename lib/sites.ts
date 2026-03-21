@@ -1,10 +1,14 @@
+import type { ReadonlyURLSearchParams } from "next/navigation";
 import rawSites from "@/data/sites.json";
 import {
   SITE_CATEGORIES,
+  SITE_FILTER_KEYS,
   SITE_STATUSES,
+  type LinkedSiteFilterKey,
   type RawSiteRecord,
   type Site,
   type SiteCategory,
+  type SiteFilterKey,
   type SiteFilterOptions,
   type SiteFilters,
   type SiteImage,
@@ -17,6 +21,46 @@ const DEFAULT_CITY = "未知城市";
 const SPLIT_PATTERN = /[\/、，,；;｜|]+/;
 
 const sites = sortSites(normalizeSites(rawSites as RawSiteRecord[]));
+
+export type SiteStatusGroup =
+  | "adaptive-reuse"
+  | "observable"
+  | "restricted"
+  | "unknown";
+
+export interface SiteMarkerTone {
+  fill: string;
+  stroke: string;
+  ring: string;
+  shadow: string;
+}
+
+const SITE_MARKER_TONES: Record<SiteStatusGroup, SiteMarkerTone> = {
+  "adaptive-reuse": {
+    fill: "#2f7f78",
+    stroke: "#1f5b56",
+    ring: "rgba(47, 127, 120, 0.22)",
+    shadow: "rgba(25, 67, 62, 0.24)",
+  },
+  observable: {
+    fill: "#425a70",
+    stroke: "#263746",
+    ring: "rgba(66, 90, 112, 0.22)",
+    shadow: "rgba(20, 32, 44, 0.24)",
+  },
+  restricted: {
+    fill: "#8a6957",
+    stroke: "#61473a",
+    ring: "rgba(138, 105, 87, 0.2)",
+    shadow: "rgba(67, 46, 38, 0.22)",
+  },
+  unknown: {
+    fill: "#78838f",
+    stroke: "#505b67",
+    ring: "rgba(120, 131, 143, 0.18)",
+    shadow: "rgba(51, 65, 85, 0.18)",
+  },
+};
 
 export function normalizeSite(raw: RawSiteRecord): Site {
   const category = normalizeCategory(raw.category ?? raw.type);
@@ -33,6 +77,8 @@ export function normalizeSite(raw: RawSiteRecord): Site {
   const batch = normalizeOptionalText(raw.batch);
   const era = normalizeEra(raw.era, raw.year);
   const description = raw.description ?? raw.summary;
+  const historicalBackground = normalizeOptionalText(raw.historicalBackground) ?? normalizeOptionalText(description);
+  const researchValue = normalizeOptionalText(raw.researchValue);
   const address = normalizeOptionalText(raw.address);
   const source = normalizeOptionalText(raw.source);
   const imageAlt = name ? `${name} 图片` : undefined;
@@ -57,10 +103,14 @@ export function normalizeSite(raw: RawSiteRecord): Site {
     batch,
     era,
     description,
+    historicalBackground,
+    researchValue,
     address,
     source,
     images: normalizeImages(raw.images, raw.coverImage, imageAlt),
     visitAccess: normalizeOptionalText(raw.visitAccess),
+    currentUse: normalizeOptionalText(raw.currentUse),
+    visibleRemains: normalizeOptionalText(raw.visibleRemains),
     riskNote: normalizeOptionalText(raw.riskNote),
     searchText: "",
   };
@@ -94,6 +144,17 @@ export function buildSiteFilterOptions(items: Site[]): SiteFilterOptions {
   };
 }
 
+export function buildLinkedSiteFilterOptions(items: Site[], filters: SiteFilters): SiteFilterOptions {
+  return {
+    provinces: getLinkedSiteFilterValues(items, filters, "province"),
+    cities: getLinkedSiteFilterValues(items, filters, "city"),
+    categories: getLinkedSiteFilterValues(items, filters, "category"),
+    statuses: getLinkedSiteFilterValues(items, filters, "status") as SiteStatus[],
+    levels: getLinkedSiteFilterValues(items, filters, "level"),
+    batches: getLinkedSiteFilterValues(items, filters, "batch"),
+  };
+}
+
 export function getSiteSearchText(site: Site): string {
   return [
     site.name,
@@ -109,6 +170,8 @@ export function getSiteSearchText(site: Site): string {
     site.level,
     site.batch,
     site.description,
+    site.historicalBackground,
+    site.researchValue,
     site.address,
     site.era,
   ]
@@ -133,12 +196,89 @@ export function filterSites(items: Site[], filters: SiteFilters): Site[] {
   });
 }
 
+export function parseSiteFiltersFromSearchParams(searchParams: URLSearchParams | ReadonlyURLSearchParams): SiteFilters {
+  return SITE_FILTER_KEYS.reduce<SiteFilters>((filters, key) => {
+    filters[key] = searchParams.get(key)?.trim() ?? "";
+    return filters;
+  }, createEmptySiteFilters());
+}
+
+export function buildSiteSearchParams(filters: SiteFilters): URLSearchParams {
+  const searchParams = new URLSearchParams();
+
+  SITE_FILTER_KEYS.forEach((key) => {
+    const value = filters[key].trim();
+    if (value) {
+      searchParams.set(key, value);
+    }
+  });
+
+  return searchParams;
+}
+
+export function createEmptySiteFilters(): SiteFilters {
+  return SITE_FILTER_KEYS.reduce<SiteFilters>((filters, key) => {
+    filters[key] = "";
+    return filters;
+  }, {} as SiteFilters);
+}
+
+export function mergeSiteFilters(
+  filters: SiteFilters,
+  key: SiteFilterKey,
+  value: string,
+): SiteFilters {
+  if (key === "province") {
+    return {
+      ...filters,
+      province: value,
+      city: "",
+    };
+  }
+
+  return {
+    ...filters,
+    [key]: value,
+  };
+}
+
+export function sanitizeSiteFilters(filters: SiteFilters, options: SiteFilterOptions): SiteFilters {
+  return {
+    ...filters,
+    province: sanitizeSiteFilterValue(filters.province, options.provinces),
+    city: sanitizeSiteFilterValue(filters.city, options.cities),
+    category: sanitizeSiteFilterValue(filters.category, options.categories),
+    status: sanitizeSiteFilterValue(filters.status, options.statuses),
+    level: sanitizeSiteFilterValue(filters.level, options.levels),
+    batch: sanitizeSiteFilterValue(filters.batch, options.batches),
+    keyword: filters.keyword,
+  };
+}
+
 export function getFeaturedSites(): Site[] {
   return sites.filter((site) => site.featured).sort((a, b) => a.featuredOrder - b.featuredOrder);
 }
 
 export function getPrimarySiteImage(site: Site): SiteImage {
   return site.images?.[0] ?? { url: DEFAULT_IMAGE_URL, alt: site.name };
+}
+
+export function getSiteStatusGroup(site: Pick<Site, "status">): SiteStatusGroup {
+  switch (site.status) {
+    case "开放参观":
+    case "预约参观":
+      return "adaptive-reuse";
+    case "外观可见":
+      return "observable";
+    case "暂不开放":
+      return "restricted";
+    default:
+      return "unknown";
+  }
+}
+
+export function getSiteMarkerTone(site: Pick<Site, "status">): SiteMarkerTone {
+  return SITE_MARKER_TONES[getSiteStatusGroup(site)];
 }
 
 export function getAllSites(): Site[] {
@@ -228,6 +368,38 @@ function normalizeImages(
       alt: fallbackAlt,
     },
   ];
+}
+
+function getLinkedSiteFilterValues(items: Site[], filters: SiteFilters, key: LinkedSiteFilterKey): string[] {
+  const scopedFilters = createScopedSiteFilters(filters, key);
+  const filteredItems = filterSites(items, scopedFilters);
+
+  switch (key) {
+    case "province":
+      return uniqueSorted(filteredItems.map((site) => site.provinceFull));
+    case "city":
+      return uniqueSorted(filteredItems.map((site) => site.primaryCity));
+    case "category":
+      return uniqueSorted(filteredItems.map((site) => site.category));
+    case "status":
+      return uniqueSorted(filteredItems.map((site) => site.status));
+    case "level":
+      return uniqueSorted(filteredItems.map((site) => site.level ?? ""));
+    case "batch":
+      return uniqueSorted(filteredItems.map((site) => site.batch ?? ""));
+    default:
+      return [];
+  }
+}
+
+function createScopedSiteFilters(filters: SiteFilters, ignoredKey: LinkedSiteFilterKey): SiteFilters {
+  const nextFilters = { ...filters };
+  nextFilters[ignoredKey] = "";
+  return nextFilters;
+}
+
+function sanitizeSiteFilterValue(value: string, options: string[]): string {
+  return !value || options.includes(value) ? value : "";
 }
 
 function uniqueSorted(values: string[]): string[] {

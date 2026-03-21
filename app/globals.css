@@ -4,6 +4,11 @@
 :root {
   --background: #f7f7f5;
   --foreground: #111827;
+  --site-focus-ring: rgba(49, 78, 103, 0.2);
+  --site-focus-shadow: 0 18px 36px rgba(15, 23, 42, 0.14);
+  --site-hover-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+  --site-selected-border: #334155;
+  --site-hover-border: #94a3b8;
 }
 
 * {
@@ -38,4 +43,176 @@ a {
 
 .leaflet-popup-content {
   margin: 12px 14px;
+}
+
+.leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.leaflet-marker-icon.site-marker-icon,
+.leaflet-div-icon.site-cluster-icon {
+  background: transparent;
+  border: 0;
+}
+
+.site-marker {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -100%);
+  transition:
+    transform 160ms ease,
+    filter 160ms ease,
+    opacity 160ms ease;
+}
+
+.site-marker::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 999px;
+  background: var(--marker-fill, #425a70);
+  border: 1.5px solid var(--marker-stroke, #263746);
+  box-shadow:
+    0 8px 18px var(--marker-shadow, rgba(20, 32, 44, 0.24)),
+    0 0 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.site-marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 9px;
+  height: 9px;
+  background: var(--marker-fill, #425a70);
+  border-right: 1.5px solid var(--marker-stroke, #263746);
+  border-bottom: 1.5px solid var(--marker-stroke, #263746);
+  transform: translate(-50%, 32%) rotate(45deg);
+  border-radius: 1px;
+}
+
+.site-marker__core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+.site-marker--hovered {
+  transform: translate(-50%, -100%) scale(1.08);
+  z-index: 12;
+}
+
+.site-marker--selected {
+  transform: translate(-50%, -100%) scale(1.18);
+  z-index: 14;
+}
+
+.site-marker--selected::before {
+  box-shadow:
+    0 0 0 6px var(--marker-ring, rgba(66, 90, 112, 0.22)),
+    0 14px 28px var(--marker-shadow, rgba(20, 32, 44, 0.24)),
+    0 0 0 1px rgba(255, 255, 255, 0.82);
+}
+
+.site-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.14), transparent 42%),
+    #314253;
+  color: #f8fafc;
+  box-shadow:
+    0 16px 32px rgba(15, 23, 42, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.site-cluster__count {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.site-cluster-icon.marker-cluster-small,
+.site-cluster-icon.marker-cluster-medium,
+.site-cluster-icon.marker-cluster-large {
+  background: transparent;
+}
+
+.site-empty-state {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  z-index: 500;
+  width: min(360px, calc(100% - 32px));
+  transform: translateX(-50%);
+  border-radius: 20px;
+  border: 1px dashed rgba(100, 116, 139, 0.35);
+  background: rgba(248, 250, 252, 0.92);
+  padding: 14px 18px;
+  text-align: center;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.site-card-shell {
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+.site-card-shell.is-hovered {
+  border-color: var(--site-hover-border);
+  box-shadow: var(--site-hover-shadow);
+}
+
+.site-card-shell.is-selected {
+  border-color: var(--site-selected-border);
+  background: linear-gradient(180deg, rgba(241, 245, 249, 0.82), rgba(255, 255, 255, 0.96));
+  box-shadow:
+    0 0 0 4px var(--site-focus-ring),
+    var(--site-focus-shadow);
+}
+
+.site-map-placeholder {
+  background:
+    linear-gradient(180deg, rgba(241, 245, 249, 0.95), rgba(226, 232, 240, 0.85)),
+    repeating-linear-gradient(
+      45deg,
+      rgba(148, 163, 184, 0.08),
+      rgba(148, 163, 184, 0.08) 12px,
+      transparent 12px,
+      transparent 24px
+    );
+}
+
+.site-detail-marker-icon {
+  background: transparent;
+  border: 0;
+}
+
+.site-detail-marker {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  background: #314253;
+  box-shadow:
+    0 0 0 6px rgba(49, 66, 83, 0.18),
+    0 10px 24px rgba(15, 23, 42, 0.22);
 }

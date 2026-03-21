@@ -1,12 +1,11 @@
 import Link from "next/link";
 import HomeExplorer from "@/components/home-explorer";
 import FeaturedSiteList from "@/components/featured-site-list";
-import { getAllSites, getFeaturedSites, getSiteFilterOptions } from "@/lib/sites";
+import { getAllSites, getFeaturedSites } from "@/lib/sites";
 
 export default function HomePage() {
   const sites = getAllSites();
   const featuredSites = getFeaturedSites().slice(0, 8);
-  const options = getSiteFilterOptions();
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
@@ -66,7 +65,7 @@ export default function HomePage() {
         </section>
       ) : null}
 
-      <HomeExplorer sites={sites} options={options} />
+      <HomeExplorer sites={sites} />
 
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
         <p className="font-medium">免责声明</p>

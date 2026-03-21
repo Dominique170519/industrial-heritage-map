@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { filterSites } from "@/lib/sites";
-import type { Site, SiteFilterOptions, SiteFilters } from "@/types/site";
+import { buildLinkedSiteFilterOptions, buildSiteSearchParams, filterSites, mergeSiteFilters, parseSiteFiltersFromSearchParams, sanitizeSiteFilters } from "@/lib/sites";
+import type { Site, SiteFilterKey } from "@/types/site";
 import Filters from "@/components/filters";
 import SiteList from "@/components/site-list";
 
@@ -16,59 +17,45 @@ const MapView = dynamic(() => import("@/components/map-view"), {
   ),
 });
 
-const initialFilters: SiteFilters = {
-  province: "",
-  city: "",
-  category: "",
-  status: "",
-  level: "",
-  batch: "",
-  keyword: "",
-};
-
 export default function HomeExplorer({
   sites,
-  options,
 }: {
   sites: Site[];
-  options: SiteFilterOptions;
 }) {
-  const [filters, setFilters] = useState<SiteFilters>(initialFilters);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const filters = useMemo(() => parseSiteFiltersFromSearchParams(searchParams), [searchParams]);
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
+  const [hoveredSiteId, setHoveredSiteId] = useState<string | null>(null);
 
   const filteredSites = useMemo(() => filterSites(sites, filters), [filters, sites]);
-  const cityOptions = useMemo(() => {
-    if (!filters.province) {
-      return options.cities;
-    }
+  const linkedOptions = useMemo(() => buildLinkedSiteFilterOptions(sites, filters), [filters, sites]);
+  const selectedSiteIdInResults =
+    selectedSiteId && filteredSites.some((site) => site.id === selectedSiteId) ? selectedSiteId : null;
+  const hoveredSiteIdInResults =
+    hoveredSiteId && filteredSites.some((site) => site.id === hoveredSiteId) ? hoveredSiteId : null;
+  const effectiveSelectedSiteId = selectedSiteIdInResults ?? filteredSites[0]?.id ?? null;
 
-    return Array.from(
-      new Set(
-        sites
-          .filter((site) => site.provinceFull === filters.province)
-          .map((site) => site.primaryCity),
-      ),
-    ).sort((a, b) => a.localeCompare(b, "zh-CN"));
-  }, [filters.province, options.cities, sites]);
-
-  function handleChange(key: keyof SiteFilters, value: string) {
-    setFilters((prev) => {
-      if (key === "province") {
-        return {
-          ...prev,
-          province: value,
-          city: "",
-        };
-      }
-
-      return {
-        ...prev,
-        [key]: value,
-      };
-    });
+  function handleChange(key: SiteFilterKey, value: string) {
+    const nextFilters = mergeSiteFilters(filters, key, value);
+    const nextLinkedOptions = buildLinkedSiteFilterOptions(sites, nextFilters);
+    const sanitizedFilters = sanitizeSiteFilters(nextFilters, nextLinkedOptions);
+    const nextQuery = buildSiteSearchParams(sanitizedFilters).toString();
+    const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+    router.replace(nextUrl, { scroll: false });
   }
 
   function handleReset() {
-    setFilters(initialFilters);
+    router.replace(pathname, { scroll: false });
+  }
+
+  function handleSelectSite(siteId: string | null) {
+    setSelectedSiteId(siteId);
+  }
+
+  function handleHoverSite(siteId: string | null) {
+    setHoveredSiteId(siteId);
   }
 
   return (
@@ -96,12 +83,12 @@ export default function HomeExplorer({
       <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)] xl:items-start">
         <div className="xl:sticky xl:top-6">
           <Filters
-            provinces={options.provinces}
-            cities={cityOptions}
-            categories={options.categories}
-            statuses={options.statuses}
-            levels={options.levels}
-            batches={options.batches}
+            provinces={linkedOptions.provinces}
+            cities={linkedOptions.cities}
+            categories={linkedOptions.categories}
+            statuses={linkedOptions.statuses}
+            levels={linkedOptions.levels}
+            batches={linkedOptions.batches}
             filters={filters}
             total={sites.length}
             filtered={filteredSites.length}
@@ -111,7 +98,13 @@ export default function HomeExplorer({
         </div>
 
         <div className="flex flex-col gap-6">
-          <MapView sites={filteredSites} />
+          <MapView
+            sites={filteredSites}
+            selectedSiteId={effectiveSelectedSiteId}
+            hoveredSiteId={hoveredSiteIdInResults}
+            onSelectSite={handleSelectSite}
+            onHoverSite={handleHoverSite}
+          />
 
           <section className="space-y-4">
             <div className="flex items-end justify-between gap-4">
@@ -123,7 +116,13 @@ export default function HomeExplorer({
               </div>
             </div>
 
-            <SiteList sites={filteredSites} />
+            <SiteList
+              sites={filteredSites}
+              selectedSiteId={effectiveSelectedSiteId}
+              hoveredSiteId={hoveredSiteIdInResults}
+              onSelectSite={handleSelectSite}
+              onHoverSite={handleHoverSite}
+            />
           </section>
         </div>
       </div>

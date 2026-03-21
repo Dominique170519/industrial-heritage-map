@@ -52,10 +52,14 @@ export interface SiteRecord {
   batch?: string;
   era?: string;
   description?: string;
+  historicalBackground?: string;
+  researchValue?: string;
   address?: string;
   source?: SiteSource;
   images?: SiteImage[];
   visitAccess?: string;
+  currentUse?: string;
+  visibleRemains?: string;
   riskNote?: string;
   searchText: string;
 }
@@ -72,12 +76,21 @@ export interface LegacySiteRecord {
   lng: number;
   coverImage?: string;
   summary?: string;
+  historicalBackground?: string;
+  researchValue?: string;
   address?: string;
   visitAccess?: string;
+  currentUse?: string;
+  visibleRemains?: string;
   riskNote?: string;
 }
 
 export type RawSiteRecord = Partial<SiteRecord> & Partial<LegacySiteRecord>;
+
+export const SITE_FILTER_KEYS = ["province", "city", "category", "status", "level", "batch", "keyword"] as const;
+
+export type SiteFilterKey = (typeof SITE_FILTER_KEYS)[number];
+export type LinkedSiteFilterKey = Exclude<SiteFilterKey, "keyword">;
 
 export interface SiteFilters {
   province: string;

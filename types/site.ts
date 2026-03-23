@@ -15,12 +15,20 @@ export const SITE_CATEGORIES = [
   "电力工业",
   "船舶工业",
   "铁路工业",
+  "铁路交通",
   "食品工业",
   "机械制造",
   "罐头食品工业",
   "印刷工业",
   "其他工业",
   "有色金属",
+  "核工业",
+  "煤炭工业",
+  "化工工业",
+  "建材工业",
+  "造纸印刷",
+  "军工国防",
+  "航空航天",
 ] as const;
 
 export type SiteCategory = (typeof SITE_CATEGORIES)[number];
@@ -131,6 +139,17 @@ export interface SiteFacetCounts {
   batches: Record<string, number>;
 }
 
+export interface ExplorationRouteStop {
+  order: number;
+  site: Site;
+}
+
+export interface ExplorationRoute {
+  stops: ExplorationRouteStop[];
+  siteIds: string[];
+  coordinates: [number, number][];
+}
+
 export type SiteMapRelationLevel =
   | "default"
   | "selected"
@@ -143,6 +162,10 @@ export interface SiteMapMarkerState {
   relationLevel: SiteMapRelationLevel;
   isSelected: boolean;
   isHovered: boolean;
+  isInRoute: boolean;
+  isRouteStart: boolean;
+  isRouteEnd: boolean;
+  isDimmedByRoute: boolean;
 }
 
 export interface SiteMapBounds {

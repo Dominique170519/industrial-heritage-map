@@ -1,11 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
 import {
   areSiteMapBoundsEqual,
+  buildExplorationRoute,
   buildLinkedSiteFilterOptions,
   buildSiteSearchParams,
   filterSites,
@@ -18,16 +19,18 @@ import {
   parseSiteFiltersFromSearchParams,
   sanitizeSiteFilters,
 } from "@/lib/sites";
-import type { Site, SiteFacetCounts, SiteFilterKey, SiteFilters, SiteMapBounds } from "@/types/site";
+import type {
+  ExplorationRoute,
+  Site,
+  SiteFacetCounts,
+  SiteFilterKey,
+  SiteFilters,
+  SiteMapBounds,
+} from "@/types/site";
 import Filters from "@/components/filters";
 
 const MapView = dynamic(() => import("@/components/map-view"), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-[720px] items-center justify-center rounded-[32px] border border-slate-200 bg-white text-sm text-slate-500 shadow-[0_18px_42px_rgba(15,23,42,0.08)]">
-      地图加载中...
-    </div>
-  ),
 });
 
 const QUICK_CATEGORY_PRIORITY = ["钢铁工业", "铁路工业", "电力工业", "纺织工业", "机械制造", "食品工业"] as const;
@@ -47,49 +50,72 @@ function getTopCategoryStats(items: Site[], limit = 5) {
 
 function getPrimaryInsight(items: Site[]) {
   if (items.length === 0) {
-    return "当前筛选下暂无结果，可先清空条件或切换省份 / 类型继续探索。";
+    return "没有符合条件的点位，试试换一个筛选条件。";
   }
 
   if (items.length === 1) {
-    return "当前结果仅剩 1 处点位，适合直接查看其详细档案并沿关联路径继续浏览。";
+    return "只剩这一处了——值得深入看看它的完整档案。";
   }
 
   const topRegion = getSiteRegionStats(items, 1)[0];
   const topCategory = getTopCategoryStats(items, 1)[0];
 
   if (topRegion && topCategory) {
-    return `当前结果主要集中在${topRegion.value}，并以${topCategory.value}为主，可先从高频区域或类型切入。`;
+    return `${topRegion.value}最集中，${topCategory.value}占了大多数，从这里切入不会错。`;
   }
 
   if (topRegion) {
-    return `当前结果主要集中在${topRegion.value}，可先锁定区域再继续缩小筛选。`;
+    return `大部分点位都在${topRegion.value}，可以专注这个区域来缩小范围。`;
   }
 
   if (topCategory) {
-    return `当前结果以${topCategory.value}为主，可先围绕同类型点位做横向比较。`;
+    return `这一批里${topCategory.value}最多，适合做横向比较。`;
   }
 
-  return "当前结果已同步到地图、列表与右侧面板，可继续点击点位或调整筛选。";
+  return "结果已经显示在地图和下方列表里了，往下滑看看。";
+}
+
+function getRouteInsight(route: ExplorationRoute | null, items: Site[]) {
+  if (!route) {
+    return "";
+  }
+
+  const routeSites = route.stops.map((stop) => stop.site);
+  const topRegion = getSiteRegionStats(routeSites, 1)[0];
+  const topCategory = getTopCategoryStats(routeSites, 1)[0];
+  const uniqueCities = new Set(routeSites.map((site) => site.primaryCity)).size;
+  const uniqueProvinces = new Set(routeSites.map((site) => site.provinceFull)).size;
+  const resultShare = items.length > 0 ? Math.round((routeSites.length / items.length) * 100) : 0;
+
+  if (uniqueCities === 1) {
+    return `路线集中在${routeSites[0]?.primaryCity}，串起 ${routeSites.length} 个点位，同城工业遗产一网打尽。`;
+  }
+
+  if (uniqueProvinces === 1) {
+    return `跨越 ${uniqueCities} 城，以${topCategory?.value ?? "工业遗产"}为主，是一条顺路的区域探索。`;
+  }
+
+  return `横跨 ${uniqueProvinces} 省 ${uniqueCities} 城的远途路线，抓住了当前结果中约 ${resultShare}% 的精华。`;
 }
 
 function buildExploreActions(selectedSite: Site | null, regionStats: Array<{ value: string; count: number }>, categoryStats: Array<{ value: string; count: number }>, filters: SiteFilters, facetCounts: SiteFacetCounts) {
   if (selectedSite) {
     const actions = [
       {
-        label: `同类 · ${selectedSite.category}`,
-        description: `查看同类型点位（${Math.max((facetCounts.categories[selectedSite.category] ?? 0) - 1, 0)} 处关联结果）`,
+        label: `${selectedSite.category}还有`,
+        description: `${Math.max((facetCounts.categories[selectedSite.category] ?? 0) - 1, 0)} 处同类遗产可比较`,
         key: "category" as SiteFilterKey,
         value: selectedSite.category,
       },
       {
-        label: `同城 · ${selectedSite.primaryCity}`,
-        description: `回到当前城市继续比较（${Math.max((facetCounts.cities[selectedSite.primaryCity] ?? 0) - 1, 0)} 处关联结果）`,
+        label: `${selectedSite.primaryCity}同城`,
+        description: `${Math.max((facetCounts.cities[selectedSite.primaryCity] ?? 0) - 1, 0)} 处同城市点位可比较`,
         key: "city" as SiteFilterKey,
         value: selectedSite.primaryCity,
       },
       {
-        label: `同省 · ${selectedSite.provinceFull}`,
-        description: `扩大到同省范围继续浏览（${Math.max((facetCounts.provinces[selectedSite.provinceFull] ?? 0) - 1, 0)} 处关联结果）`,
+        label: `${selectedSite.provinceFull}同省`,
+        description: `${Math.max((facetCounts.provinces[selectedSite.provinceFull] ?? 0) - 1, 0)} 处同省点位可比较`,
         key: "province" as SiteFilterKey,
         value: selectedSite.provinceFull,
       },
@@ -119,8 +145,8 @@ function buildExploreActions(selectedSite: Site | null, regionStats: Array<{ val
 
   if (activeRegion && filters.province !== activeRegion.value) {
     actions.push({
-      label: `先看${activeRegion.value}`,
-      description: `锁定当前高频地区，快速聚焦 ${activeRegion.count} 处结果。`,
+      label: `去${activeRegion.value}看看`,
+      description: `${activeRegion.count} 处遗产集中在那里，一键聚焦。`,
       key: "province",
       value: activeRegion.value,
     });
@@ -128,8 +154,8 @@ function buildExploreActions(selectedSite: Site | null, regionStats: Array<{ val
 
   if (activeCategory && filters.category !== activeCategory.value) {
     actions.push({
-      label: `先看${activeCategory.value}`,
-      description: `切到当前高频类型，继续比较 ${activeCategory.count} 处点位。`,
+      label: `${activeCategory.value}有哪些`,
+      description: `${activeCategory.count} 处${activeCategory.value}遗产可以比较。`,
       key: "category",
       value: activeCategory.value,
     });
@@ -142,8 +168,8 @@ function buildExploreActions(selectedSite: Site | null, regionStats: Array<{ val
 
     if (topStatus) {
       actions.push({
-        label: `按${topStatus.value}看`,
-        description: `用开放状态继续压缩结果，当前可得到 ${topStatus.count} 处点位。`,
+        label: `只看${topStatus.value}`,
+        description: `${topStatus.count} 处${topStatus.value}遗产值得优先关注。`,
         key: "status",
         value: topStatus.value,
       });
@@ -276,10 +302,10 @@ function ExploreIntro({
 }) {
   return (
     <div className="site-workspace-rail__header">
-      <p className="site-workspace-rail__eyebrow">Start here</p>
-      <h2 className="site-workspace-rail__title">开始探索</h2>
+      <p className="site-workspace-rail__eyebrow">Start exploring</p>
+      <h2 className="site-workspace-rail__title">出发吧</h2>
       <p className="site-workspace-rail__description">
-        先从地区、类型或关键词切入，地图和右侧发现会跟着一起更新。
+        选一个省份、一种类型，或者随手搜个词，看看地图上藏着什么。
       </p>
       <div className="site-workspace-rail__summary">
         <strong>找到 {visibleCount} 个点位</strong>
@@ -291,36 +317,52 @@ function ExploreIntro({
         className="site-workspace-rail__reset"
         disabled={!hasActiveFilters}
       >
-        清空筛选
+        重置
       </button>
     </div>
   );
 }
 
-function ActiveFilterBadges({
-  filters,
-  onClear,
-  emptyText = "当前还没有筛选条件，可先从地区、类型或开放状态开始。",
+function RoutePlanner({
+  route,
+  resultCount,
+  canGenerateRoute,
+  onToggleRoute,
 }: {
-  filters: Record<string, string>;
-  onClear: (key: SiteFilterKey) => void;
-  emptyText?: string;
+  route: ExplorationRoute | null;
+  resultCount: number;
+  canGenerateRoute: boolean;
+  onToggleRoute: () => void;
 }) {
-  const entries = (Object.entries(filters) as [SiteFilterKey, string][]).filter(([, value]) => value.trim());
-
-  if (entries.length === 0) {
-    return <p className="site-workspace-inspector__muted">{emptyText}</p>;
-  }
-
   return (
-    <div className="site-workspace-badges">
-      {entries.map(([key, value]) => (
-        <button key={`${key}-${value}`} type="button" onClick={() => onClear(key)} className="site-workspace-badge">
-          <span>{value}</span>
-          <strong>×</strong>
-        </button>
-      ))}
-    </div>
+    <section className="site-workspace-route-panel">
+      <div className="site-workspace-route-panel__header">
+        <div>
+          <p className="site-workspace-route-panel__eyebrow">Plan your route</p>
+          <h3 className="site-workspace-route-panel__title">规划一条路线</h3>
+        </div>
+        <span className="site-workspace-route-panel__meta">{route ? `${route.stops.length} 站` : `${resultCount} 个候选`}</span>
+      </div>
+
+      <p className="site-workspace-route-panel__description">
+        挑几个感兴趣的地方，让地图帮你串成一条顺路的探索路径。
+      </p>
+
+      <button
+        type="button"
+        onClick={onToggleRoute}
+        className={`site-workspace-route-panel__action ${route ? "is-secondary" : ""}`}
+        disabled={!route && !canGenerateRoute}
+      >
+        {route ? "重新来过" : "生成路线"}
+      </button>
+
+      {!canGenerateRoute && !route ? (
+        <p className="site-workspace-route-panel__hint">先挑 2 个点位试试看。</p>
+      ) : null}
+
+      {route ? <p className="site-workspace-route-panel__hint">路线详情已移到右侧面板，可在那里继续逐站浏览。</p> : null}
+    </section>
   );
 }
 
@@ -334,8 +376,9 @@ function WorkspaceInspector({
   regionStats,
   categoryStats,
   facetCounts,
+  activeRoute,
+  routeInsight,
   onSelectSite,
-  onClearFilter,
   onApplyFilter,
 }: {
   sites: Site[];
@@ -347,8 +390,9 @@ function WorkspaceInspector({
   regionStats: Array<{ value: string; count: number }>;
   categoryStats: Array<{ value: string; count: number }>;
   facetCounts: SiteFacetCounts;
+  activeRoute: ExplorationRoute | null;
+  routeInsight: string;
   onSelectSite: (siteId: string | null) => void;
-  onClearFilter: (key: SiteFilterKey) => void;
   onApplyFilter: (key: SiteFilterKey, value: string) => void;
 }) {
   const previewSites = useMemo(() => {
@@ -385,27 +429,18 @@ function WorkspaceInspector({
     return (
       <aside className="site-workspace-inspector">
         <div className="site-workspace-inspector__section">
-          <p className="site-workspace-inspector__eyebrow">This trip</p>
-          <h2 className="site-workspace-inspector__title">本次发现</h2>
+          <p className="site-workspace-inspector__eyebrow">Field notes</p>
+          <h2 className="site-workspace-inspector__title">这次挖到了</h2>
           <p className="site-workspace-inspector__muted">
-            这次一共看到 <strong>{visibleCount}</strong> / {totalCount} 处点位。
-            {requestedSiteId ? " 当前链接带了一个点位，但它暂时不在这组结果里。" : " 可以点地图、点地区，或者从右侧建议继续看看。"}
+            <strong>{visibleCount}</strong> / {totalCount} 处点位。
+            {requestedSiteId ? " 链接里的那一处暂时不在当前结果中。" : " 点地图、点地区热区，或者直接翻下方的推荐继续逛。"}
           </p>
           <div className="site-workspace-inspector__highlight">{insightText}</div>
         </div>
 
         <div className="site-workspace-inspector__section">
-          <h3 className="site-workspace-inspector__heading">当前筛选</h3>
-          <ActiveFilterBadges
-            filters={filters}
-            onClear={onClearFilter}
-            emptyText="还没有加筛选条件，先从地区、类型或开放状态开始逛也可以。"
-          />
-        </div>
-
-        <div className="site-workspace-inspector__section">
           <div className="site-workspace-inspector__row">
-            <h3 className="site-workspace-inspector__heading">热门地区</h3>
+            <h3 className="site-workspace-inspector__heading">都在哪</h3>
             <span className="site-workspace-inspector__meta">Top {regionStats.length}</span>
           </div>
           {regionStats.length > 0 ? (
@@ -429,7 +464,7 @@ function WorkspaceInspector({
 
         <div className="site-workspace-inspector__section">
           <div className="site-workspace-inspector__row">
-            <h3 className="site-workspace-inspector__heading">热门类型</h3>
+            <h3 className="site-workspace-inspector__heading">都是什么</h3>
             <span className="site-workspace-inspector__meta">Top {categoryStats.length}</span>
           </div>
           {categoryStats.length > 0 ? (
@@ -453,7 +488,7 @@ function WorkspaceInspector({
 
         <div className="site-workspace-inspector__section">
           <div className="site-workspace-inspector__row">
-            <h3 className="site-workspace-inspector__heading">接着逛</h3>
+            <h3 className="site-workspace-inspector__heading">继续探索</h3>
             <span className="site-workspace-inspector__meta">{exploreActions.length} 条</span>
           </div>
           {exploreActions.length > 0 ? (
@@ -477,7 +512,39 @@ function WorkspaceInspector({
 
         <div className="site-workspace-inspector__section">
           <div className="site-workspace-inspector__row">
-            <h3 className="site-workspace-inspector__heading">先看这些</h3>
+            <h3 className="site-workspace-inspector__heading">这条路线</h3>
+            <span className="site-workspace-inspector__meta">{activeRoute ? `${activeRoute.stops.length} 站` : "未生成"}</span>
+          </div>
+          {activeRoute ? (
+            <>
+              <p className="site-workspace-inspector__muted site-workspace-inspector__muted--compact">{routeInsight}</p>
+              <div className="site-workspace-route-list">
+                {activeRoute.stops.map((stop) => (
+                  <button
+                    key={stop.site.id}
+                    type="button"
+                    onClick={() => onSelectSite(stop.site.id)}
+                    className="site-workspace-route-item"
+                  >
+                    <span className="site-workspace-route-item__order">{stop.order}</span>
+                    <div className="site-workspace-route-item__body">
+                      <p className="site-workspace-route-item__name">{stop.site.name}</p>
+                      <p className="site-workspace-route-item__meta">
+                        {stop.site.primaryCity} · {stop.site.category}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="site-workspace-inspector__muted">路线入口在左侧，先筛选再规划。</p>
+          )}
+        </div>
+
+        <div className="site-workspace-inspector__section">
+          <div className="site-workspace-inspector__row">
+            <h3 className="site-workspace-inspector__heading">随手翻翻</h3>
             <span className="site-workspace-inspector__meta">Top {Math.min(previewSites.length, 6)}</span>
           </div>
           <div className="site-workspace-result-list">
@@ -509,7 +576,7 @@ function WorkspaceInspector({
   return (
     <aside className="site-workspace-inspector">
       <div className="site-workspace-inspector__section">
-        <p className="site-workspace-inspector__eyebrow">Now viewing</p>
+        <p className="site-workspace-inspector__eyebrow">Spotlight</p>
         <div className="site-workspace-site-card">
           <div className="site-workspace-site-card__image-shell">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -533,10 +600,10 @@ function WorkspaceInspector({
             <p className="site-workspace-site-card__description">{selectedSite.description}</p>
             <div className="site-workspace-site-card__actions">
               <Link href={`/sites/${selectedSite.id}`} className="site-workspace-primary-link">
-                去看看完整档案
+                查看完整档案
               </Link>
               <button type="button" onClick={() => onSelectSite(null)} className="site-workspace-secondary-link">
-                回到本次发现
+                返回
               </button>
             </div>
           </div>
@@ -545,7 +612,7 @@ function WorkspaceInspector({
 
       <div className="site-workspace-inspector__section">
         <div className="site-workspace-inspector__row">
-          <h3 className="site-workspace-inspector__heading">接着逛</h3>
+          <h3 className="site-workspace-inspector__heading">继续探索</h3>
           <span className="site-workspace-inspector__meta">{exploreActions.length} 条</span>
         </div>
         {exploreActions.length > 0 ? (
@@ -563,13 +630,49 @@ function WorkspaceInspector({
             ))}
           </div>
         ) : (
-          <p className="site-workspace-inspector__muted">当前结果里暂无更宽的延展路径，可先返回本次发现或重置部分筛选。</p>
+          <p className="site-workspace-inspector__muted">当前结果里没有更多扩展路径了，可以直接看档案或返回。</p>
         )}
       </div>
 
       <div className="site-workspace-inspector__section">
         <div className="site-workspace-inspector__row">
-          <h3 className="site-workspace-inspector__heading">附近关联</h3>
+          <h3 className="site-workspace-inspector__heading">路线一览</h3>
+          <span className="site-workspace-inspector__meta">{activeRoute ? `${activeRoute.stops.length} 站` : "未生成"}</span>
+        </div>
+        {activeRoute ? (
+          <>
+            <p className="site-workspace-inspector__muted site-workspace-inspector__muted--compact">{routeInsight}</p>
+            <div className="site-workspace-route-list">
+              {activeRoute.stops.map((stop) => {
+                const isActive = stop.site.id === selectedSite.id;
+
+                return (
+                  <button
+                    key={stop.site.id}
+                    type="button"
+                    onClick={() => onSelectSite(stop.site.id)}
+                    className={`site-workspace-route-item ${isActive ? "is-active" : ""}`}
+                  >
+                    <span className="site-workspace-route-item__order">{stop.order}</span>
+                    <div className="site-workspace-route-item__body">
+                      <p className="site-workspace-route-item__name">{stop.site.name}</p>
+                      <p className="site-workspace-route-item__meta">
+                        {stop.site.primaryCity} · {stop.site.category}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <p className="site-workspace-inspector__muted">路线入口在左侧，先筛选再规划。</p>
+        )}
+      </div>
+
+      <div className="site-workspace-inspector__section">
+        <div className="site-workspace-inspector__row">
+          <h3 className="site-workspace-inspector__heading">附近还有</h3>
           <span className="site-workspace-inspector__meta">{relatedSites.length} 条</span>
         </div>
         <div className="site-workspace-related-list">
@@ -617,8 +720,9 @@ export default function HomeExplorer({
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [hoveredSiteId, setHoveredSiteId] = useState<string | null>(null);
   const [isViewportOnly, setIsViewportOnly] = useState(false);
-  const [isOverviewExpanded, setIsOverviewExpanded] = useState(true);
+  const [isOverviewExpanded, setIsOverviewExpanded] = useState(false);
   const [viewportBounds, setViewportBounds] = useState<SiteMapBounds | null>(null);
+  const [storedRoute, setStoredRoute] = useState<ExplorationRoute | null>(null);
   const [resetSignal, setResetSignal] = useState(0);
   const [fitResultsSignal, setFitResultsSignal] = useState(0);
   const [boundsSyncSignal, setBoundsSyncSignal] = useState(0);
@@ -688,6 +792,16 @@ export default function HomeExplorer({
         .map(([key, value]) => ({ key, value })),
     [filters],
   );
+  const canGenerateRoute = filteredSites.length >= 2;
+  const activeRoute = useMemo(() => {
+    if (!storedRoute) {
+      return null;
+    }
+
+    const nextSiteIds = new Set(filteredSites.map((site) => site.id));
+    return storedRoute.siteIds.every((siteId) => nextSiteIds.has(siteId)) ? storedRoute : null;
+  }, [filteredSites, storedRoute]);
+  const routeInsight = useMemo(() => getRouteInsight(activeRoute, filteredSites), [activeRoute, filteredSites]);
 
   const handleBoundsChange = useCallback((bounds: SiteMapBounds | null) => {
     if (!isViewportOnly) {
@@ -700,6 +814,7 @@ export default function HomeExplorer({
   }, [isViewportOnly]);
 
   function handleChange(key: SiteFilterKey, value: string) {
+    setStoredRoute(null);
     const nextFilters = mergeSiteFilters(filters, key, value);
     const nextLinkedOptions = buildLinkedSiteFilterOptions(sites, nextFilters);
     const sanitizedFilters = sanitizeSiteFilters(nextFilters, nextLinkedOptions);
@@ -709,6 +824,7 @@ export default function HomeExplorer({
   }
 
   function handleReset() {
+    setStoredRoute(null);
     setSelectedSiteId(null);
     router.replace(pathname, { scroll: false });
   }
@@ -733,6 +849,21 @@ export default function HomeExplorer({
       }
       return nextValue;
     });
+  }
+
+  function handleToggleRoute() {
+    if (activeRoute) {
+      setStoredRoute(null);
+      return;
+    }
+
+    const nextRoute = buildExplorationRoute(filteredSites);
+    if (!nextRoute) {
+      return;
+    }
+
+    setStoredRoute(nextRoute);
+    handleSelectSite(nextRoute.stops[0]?.site.id ?? null);
   }
 
   function handleResetMap() {
@@ -768,26 +899,15 @@ export default function HomeExplorer({
               onChange={handleChange}
               className="site-workspace-filters"
             />
+            <RoutePlanner
+              route={activeRoute}
+              resultCount={filteredSites.length}
+              canGenerateRoute={canGenerateRoute}
+              onToggleRoute={handleToggleRoute}
+            />
           </div>
 
           <div className="site-workspace-map-column">
-            <div className="site-workspace-map-header">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Map Explorer</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-[2rem]">
-                  工业遗产地图
-                </h2>
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-                  从地图上找地方、看分布、切换筛选，再把感兴趣的点位留给右侧继续细看。
-                </p>
-              </div>
-              <div className="site-workspace-map-header__summary">
-                <span>{isViewportOnly ? "当前视野" : "当前结果"}</span>
-                <strong>{visibleSites.length}</strong>
-                <small>/ {sites.length}</small>
-              </div>
-            </div>
-
             <div className="site-workspace-map-stage">
               <MapOverviewOverlay
                 total={sites.length}
@@ -807,6 +927,7 @@ export default function HomeExplorer({
                 sites={filteredSites}
                 selectedSiteId={effectiveSelectedSiteId}
                 hoveredSiteId={hoveredSiteIdInResults}
+                activeRoute={activeRoute}
                 onSelectSite={handleSelectSite}
                 onHoverSite={handleHoverSite}
                 onBoundsChange={handleBoundsChange}
@@ -830,8 +951,9 @@ export default function HomeExplorer({
             regionStats={regionStats}
             categoryStats={categoryStats}
             facetCounts={facetCounts}
+            activeRoute={activeRoute}
+            routeInsight={routeInsight}
             onSelectSite={handleSelectSite}
-            onClearFilter={(key) => handleChange(key, "")}
             onApplyFilter={handleChange}
           />
         </div>

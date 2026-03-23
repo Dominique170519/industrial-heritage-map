@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { SiteFilterOption, SiteFilterOptions, SiteFilters } from "@/types/site";
 
 interface FiltersProps extends SiteFilterOptions {
@@ -51,6 +52,10 @@ export default function Filters({
   onChange,
   className,
 }: FiltersProps) {
+  const [showMore, setShowMore] = useState(false);
+
+  const hasMoreFilters = filters.level || filters.batch;
+
   return (
     <section
       className={[
@@ -61,18 +66,19 @@ export default function Filters({
         .join(" ")}
     >
       <div className="flex flex-col gap-4">
+        {/* 常用筛选 */}
         <label className="flex flex-col gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">关键词</span>
           <input
             type="text"
             value={filters.keyword}
             onChange={(e) => onChange("keyword", e.target.value)}
-            placeholder="按名称、省市、类别、批次或级别搜索"
+            placeholder="按名称、省市、类别搜索"
             className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-500"
           />
         </label>
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
           <SelectField
             label="省份"
             value={filters.province}
@@ -83,7 +89,7 @@ export default function Filters({
             label="城市"
             value={filters.city}
             options={cities}
-            placeholder={filters.province ? "全部城市" : "先选省份或查看全部"}
+            placeholder={filters.province ? "全部城市" : "先选省份"}
             onChange={(value) => onChange("city", value)}
           />
           <SelectField
@@ -93,24 +99,49 @@ export default function Filters({
             onChange={(value) => onChange("category", value)}
           />
           <SelectField
-            label="级别"
-            value={filters.level}
-            options={levels}
-            onChange={(value) => onChange("level", value)}
-          />
-          <SelectField
-            label="批次"
-            value={filters.batch}
-            options={batches}
-            onChange={(value) => onChange("batch", value)}
-          />
-          <SelectField
             label="状态"
             value={filters.status}
             options={statuses}
             onChange={(value) => onChange("status", value)}
           />
         </div>
+
+        {/* 更多筛选 */}
+        <button
+          type="button"
+          onClick={() => setShowMore(!showMore)}
+          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition"
+        >
+          <span
+            className="text-[13px] leading-none transition-transform"
+            style={{ transform: showMore ? "rotate(90deg)" : "rotate(0deg)", display: "inline-block" }}
+          >
+            ▶
+          </span>
+          更多筛选
+          {hasMoreFilters && (
+            <span className="ml-1 rounded-full bg-[var(--industrial-accent-soft)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--industrial-accent)]">
+              {[filters.level && "级别", filters.batch && "批次"].filter(Boolean).length}
+            </span>
+          )}
+        </button>
+
+        {showMore && (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+            <SelectField
+              label="级别"
+              value={filters.level}
+              options={levels}
+              onChange={(value) => onChange("level", value)}
+            />
+            <SelectField
+              label="批次"
+              value={filters.batch}
+              options={batches}
+              onChange={(value) => onChange("batch", value)}
+            />
+          </div>
+        )}
       </div>
     </section>
   );

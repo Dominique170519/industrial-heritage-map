@@ -1,0 +1,63 @@
+[
+  {
+    "id": "textile",
+    "tag": "工业类型",
+    "title": "纺织工业遗产",
+    "description": "从近代纱厂到国营棉纺厂，呈现中国纺织工业的扩展轨迹。",
+    "examples": "上海棉3 · 青岛国棉五厂 · 武汉裕大华纺织厂等 14 处",
+    "accentClassName": "border-[rgba(155,129,66,0.24)] bg-[rgba(155,129,66,0.1)] text-[rgb(122,98,45)]",
+    "filters": { "category": "纺织工业" }
+  },
+  {
+    "id": "steel",
+    "tag": "工业类型",
+    "title": "钢铁与重工业",
+    "description": "从炼钢高炉、轧钢车间到重型机械基地，见证国家工业化进程。",
+    "examples": "首钢园 · 鞍钢旧址 · 汉阳铁厂等 19 处",
+    "accentClassName": "border-[rgba(84,113,146,0.24)] bg-[rgba(84,113,146,0.1)] text-[rgb(66,89,116)]",
+    "filters": { "category": "钢铁工业" }
+  },
+  {
+    "id": "modern",
+    "tag": "历史时期",
+    "title": "近代工业开端",
+    "description": "聚焦晚清至民国时期的重要工业遗存，展示中国近代工业的起步。",
+    "examples": "江南制造总局旧址 · 汉阳铁厂 · 开平矿务局相关遗址等 15 处",
+    "accentClassName": "border-[rgba(122,101,81,0.22)] bg-[rgba(122,101,81,0.1)] text-[rgb(101,82,64)]",
+    "filters": { "keyword": "近代" }
+  },
+  {
+    "id": "golden",
+    "tag": "历史时期",
+    "title": "工业黄金年代",
+    "description": "以 1950 至 1970 年代的大型国营工厂为线索，回看工业体系建立时期。",
+    "examples": "798艺术区 · 景德镇陶溪川 · 杭氧老厂区等 4 处",
+    "accentClassName": "border-[rgba(120,99,139,0.22)] bg-[rgba(120,99,139,0.1)] text-[rgb(96,78,112)]",
+    "filters": { "keyword": "1950" },
+    "curatedIds": [
+      "beijing-798",
+      "batch1_4",
+      "hangzhou-hangyang-old-plant",
+      "guangzhou-redtory"
+    ]
+  },
+  {
+    "id": "adaptive",
+    "tag": "遗产状态",
+    "title": "更新再利用",
+    "description": "关注由厂房转型而来的园区、展馆与公共文化空间。",
+    "examples": "首钢园 · 景德镇陶溪川 · 上海船厂旧址改造项目等 9 处",
+    "accentClassName": "border-[rgba(89,136,112,0.22)] bg-[rgba(89,136,112,0.1)] text-[rgb(68,109,88)]",
+    "filters": { "status": "开放参观" }
+  },
+  {
+    "id": "vanished",
+    "tag": "故事专题",
+    "title": "消失的工厂",
+    "description": "记录已经停产、搬迁或拆除，但仍留存在城市记忆中的工业地标。",
+    "examples": "沈阳铸造厂旧址 · 重庆建设厂旧址 · 哈尔滨老糖厂相关遗存等",
+    "accentClassName": "border-[rgba(143,91,91,0.22)] bg-[rgba(143,91,91,0.1)] text-[rgb(118,71,71)]",
+    "filters": { "keyword": "停用" },
+    "curatedIds": []
+  }
+]

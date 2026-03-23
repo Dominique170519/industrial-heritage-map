@@ -7,13 +7,14 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import {
   MapContainer,
   Marker,
+  Polyline,
   Popup,
   TileLayer,
   Tooltip,
   useMap,
 } from "react-leaflet";
 import { areSiteMapBoundsEqual, getPrimarySiteImage, getSiteMapMarkerState, getSiteMarkerTone } from "@/lib/sites";
-import type { Site, SiteMapBounds, SiteMapMarkerState } from "@/types/site";
+import type { ExplorationRoute, Site, SiteMapBounds, SiteMapMarkerState } from "@/types/site";
 
 const DEFAULT_CENTER: [number, number] = [35.8617, 104.1954];
 const DEFAULT_ZOOM = 4;
@@ -43,6 +44,10 @@ function createMarkerIcon(site: Site, markerState: SiteMapMarkerState) {
     `site-marker--${markerState.relationLevel}`,
     markerState.isHovered ? "site-marker--hovered" : "",
     markerState.isSelected ? "site-marker--selected" : "",
+    markerState.isInRoute ? "site-marker--in-route" : "",
+    markerState.isRouteStart ? "site-marker--route-start" : "",
+    markerState.isRouteEnd ? "site-marker--route-end" : "",
+    markerState.isDimmedByRoute ? "site-marker--route-dimmed" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -269,6 +274,7 @@ export default function MapView({
   sites,
   selectedSiteId,
   hoveredSiteId,
+  activeRoute,
   onSelectSite,
   onHoverSite,
   onBoundsChange,
@@ -282,6 +288,7 @@ export default function MapView({
   sites: Site[];
   selectedSiteId: string | null;
   hoveredSiteId: string | null;
+  activeRoute: ExplorationRoute | null;
   onSelectSite: (siteId: string | null) => void;
   onHoverSite: (siteId: string | null) => void;
   onBoundsChange?: (bounds: SiteMapBounds | null) => void;
@@ -304,6 +311,9 @@ export default function MapView({
     [hoveredSiteId, sites],
   );
   const relationshipSite = hoveredSite ?? selectedSite;
+  const routeSiteIds = useMemo(() => new Set(activeRoute?.siteIds ?? []), [activeRoute]);
+  const routeStartSiteId = activeRoute?.stops[0]?.site.id ?? null;
+  const routeEndSiteId = activeRoute?.stops[activeRoute.stops.length - 1]?.site.id ?? null;
 
   useEffect(() => {
     if (!selectedSiteId) {
@@ -367,7 +377,7 @@ export default function MapView({
         zoom={DEFAULT_ZOOM}
         scrollWheelZoom
         zoomControl={false}
-        className="h-[720px] w-full"
+        className="h-full w-full"
       >
         <MapUpdater sites={sites} />
         <SelectedSiteUpdater selectedSite={selectedSite} />
@@ -386,6 +396,8 @@ export default function MapView({
           subdomains={BASEMAPS[basemapMode].subdomains}
         />
 
+        {activeRoute ? <Polyline positions={activeRoute.coordinates} pathOptions={{ className: "site-route-line" }} /> : null}
+
         <MarkerClusterGroup
           chunkedLoading
           showCoverageOnHover={false}
@@ -397,6 +409,9 @@ export default function MapView({
             const markerState = getSiteMapMarkerState(relationshipSite, site, {
               selectedSiteId,
               hoveredSiteId,
+              routeSiteIds,
+              routeStartSiteId,
+              routeEndSiteId,
             });
             const { isSelected, isHovered, relationLevel } = markerState;
             const showPermanentLabel =

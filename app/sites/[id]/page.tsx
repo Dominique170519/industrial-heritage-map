@@ -1,13 +1,23 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import Link from "next/link";
 import SiteLocationMapClient from "@/components/site-location-map-client";
+import SiteDetailMapHeader from "@/components/site-detail-map-header";
 import { buildSiteExploreHref, getAllSites, getExplorationPaths, getPrimarySiteImage, getSiteById } from "@/lib/sites";
 import type { Site } from "@/types/site";
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
   return getAllSites().map((site) => ({
     id: site.id,
   }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const site = getSiteById(id);
+  return {
+    title: site ? `${site.name} · 锈迹地图` : "锈迹地图",
+  };
 }
 
 export default async function SiteDetailPage({
@@ -30,8 +40,6 @@ export default async function SiteDetailPage({
   const relatedSites = getRelatedSites(site, allSites).slice(0, 4);
   const explorationPaths = getExplorationPaths(site, allSites);
   const mapReturnHref = buildSiteExploreHref({ category: site.category }, site.id);
-  const galleryImages = site.images?.slice(1, 4) ?? [];
-  const hasGallery = galleryImages.length > 0;
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
@@ -93,123 +101,16 @@ export default async function SiteDetailPage({
           </div>
         </section>
 
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1.45fr)_360px]">
-          <div className="flex flex-col gap-8">
-            <SectionCard
-              eyebrow="Catalog Entry"
-              title="基础信息"
-              description="以档案条目方式整理点位基础字段，便于后续扩展与标准化。"
-            >
-              <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                <InfoCard label="名称" value={site.name} />
-                <InfoCard label="所在地" value={locationLabel} />
-                <InfoCard label="工业类型" value={site.category} />
-                <InfoCard label="当前状态" value={site.status} />
-                <InfoCard label="保护级别" value={site.level ?? "暂无资料"} muted={!site.level} />
-                <InfoCard label="认定批次" value={site.batch ?? "暂无资料"} muted={!site.batch} />
-                <InfoCard label="建成年代" value={site.era ?? "暂无资料"} muted={!site.era} />
-                <InfoCard label="历史时期" value={site.era ?? "待补充"} muted={!site.era} />
-                <InfoCard label="详细地址" value={site.address ?? "暂无资料"} muted={!site.address} />
-                <InfoCard label="坐标" value={formatCoordinates(site.lat, site.lng)} />
-                <InfoCard label="访问方式" value={site.visitAccess ?? "暂无资料"} muted={!site.visitAccess} />
-                <InfoCard label="数据来源" value={site.source ?? "暂无资料"} muted={!site.source} />
-              </dl>
-            </SectionCard>
-
-            <SectionCard
-              eyebrow="Research Notes"
-              title="历史与价值说明"
-              description="将基础介绍拆分为研究型阅读结构，形成更清晰的信息节奏。"
-            >
-              <div className="grid gap-5 lg:grid-cols-2">
-                <NarrativeBlock
-                  title="历史背景"
-                  content={site.historicalBackground}
-                  fallback="当前数据以概述性描述为主，后续可补充建厂背景、生产体系演变、城市扩张关系等历史信息。"
-                />
-                <NarrativeBlock
-                  title="遗产价值 / 研究价值"
-                  content={site.researchValue}
-                  fallback={buildResearchValue(site)}
-                />
-              </div>
-            </SectionCard>
-
-            <SectionCard
-              eyebrow="Image & Field Condition"
-              title="图像与现场信息"
-              description="结合影像与现场状态，保持页面完整，同时兼容暂缺资料。"
-            >
-              <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
-                <div className="space-y-4">
-                  <div className="overflow-hidden rounded-[1.5rem] border border-stone-300 bg-stone-100">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={image.url} alt={image.alt ?? site.name} className="aspect-[16/10] w-full object-cover" />
-                  </div>
-
-                  {hasGallery ? (
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      {galleryImages.map((galleryImage, index) => (
-                        <div
-                          key={`${galleryImage.url}-${index}`}
-                          className="overflow-hidden rounded-2xl border border-stone-300 bg-stone-100"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={galleryImage.url}
-                            alt={galleryImage.alt ?? `${site.name} 图像 ${index + 2}`}
-                            className="aspect-[4/3] w-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-4 text-sm leading-7 text-slate-500">
-                      当前仅收录 1 张主图，后续可继续补充历史照片、现场照片或局部遗存图像。
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid gap-4">
-                  <FieldInfoCard label="开放参观" value={site.status} />
-                  <FieldInfoCard
-                    label="当前利用情况"
-                    value={site.currentUse ?? site.visitAccess ?? "暂无资料，待补充当前利用与开放方式。"}
-                    muted={!site.currentUse && !site.visitAccess}
-                  />
-                  <FieldInfoCard
-                    label="可见遗存类型"
-                    value={site.visibleRemains ?? inferVisibleRemains(site)}
-                    muted={!site.visibleRemains && !hasInferredVisibleRemains(site)}
-                  />
-                  <FieldInfoCard label="现场提示" value={site.riskNote ?? "暂无资料，请以现场管理要求为准。"} muted={!site.riskNote} />
-                </div>
-              </div>
-            </SectionCard>
-
-            <SectionCard
-              eyebrow="Spatial Context"
-              title="地图定位"
-              description="将单点档案页与主地图系统保持联系，提供清晰的空间坐标感。"
-            >
+        <div className="flex flex-col gap-8 xl:flex-row xl:items-stretch xl:gap-8">
+          <div className="flex flex-col justify-between gap-8 flex-1">
+            <section className="rounded-[1.5rem] border border-stone-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.07)] sm:p-7">
+              <SiteDetailMapHeader siteName={site.name} lat={site.lat} lng={site.lng} mapReturnHref={mapReturnHref} />
               <div className="overflow-hidden rounded-[1.5rem] border border-stone-300 bg-stone-100">
                 <SiteLocationMapClient lat={site.lat} lng={site.lng} name={site.name} />
               </div>
-              <div className="mt-4 flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-                <p>
-                  当前坐标：<span className="font-medium text-slate-900">{formatCoordinates(site.lat, site.lng)}</span>
-                </p>
-                <Link href={mapReturnHref} className="inline-flex font-medium text-slate-900 underline underline-offset-4">
-                  返回主地图继续筛选
-                </Link>
-              </div>
-            </SectionCard>
+            </section>
 
-            <SectionCard
-              eyebrow="Continue Exploring"
-              title="继续探索"
-              description="从当前点位回到主页地图，并直接带入一组可继续浏览的筛选路径。"
-            >
+            <SectionCard title="继续探索">
               <div className="grid gap-4 lg:grid-cols-3">
                 {explorationPaths.map((path) => (
                   <Link
@@ -223,8 +124,8 @@ export default async function SiteDetailPage({
                     </h3>
                     <p className="mt-3 text-sm leading-7 text-slate-600">{path.description}</p>
                     <div className="mt-4 flex items-center justify-between gap-3 border-t border-stone-200 pt-4 text-sm">
-                      <span className="text-slate-500">匹配点位 {path.resultCount} 个</span>
-                      <span className="font-medium text-slate-900">回到地图 →</span>
+                      <span className="text-slate-500">匹配 {path.resultCount} 个</span>
+                      <span className="font-medium text-slate-900">去看看 →</span>
                     </div>
                   </Link>
                 ))}
@@ -232,25 +133,8 @@ export default async function SiteDetailPage({
             </SectionCard>
           </div>
 
-          <aside className="flex flex-col gap-6">
-            <SectionCard
-              eyebrow="Archive Status"
-              title="档案提示"
-              description="当前页面已兼容基础字段与后续研究字段补充。"
-            >
-              <div className="space-y-4 text-sm leading-7 text-slate-700">
-                <AsideMetric label="记录编号" value={site.id} />
-                <AsideMetric label="资料完整度" value={getDataCompletenessLabel(site)} />
-                <AsideMetric label="图像数量" value={`${site.images?.length ?? 0} 张`} />
-                <AsideMetric label="研究备注" value={site.riskNote ?? "暂无补充备注"} muted={!site.riskNote} />
-              </div>
-            </SectionCard>
-
-            <SectionCard
-              eyebrow="Related Sites"
-              title="相关点位"
-              description="按同城、同类型、同省份的优先级做轻量推荐。"
-            >
+          <aside className="flex flex-col justify-between gap-6 flex-[0_0_360px]">
+            <SectionCard title="相关点位">
               <div className="space-y-4">
                 {relatedSites.length > 0 ? (
                   relatedSites.map((relatedSite) => (
@@ -284,52 +168,29 @@ export default async function SiteDetailPage({
                   ))
                 ) : (
                   <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-4 text-sm leading-7 text-slate-500">
-                    暂无可推荐的相关点位，待数据规模扩大后补充更多关联关系。
+                    暂无可推荐的相关点位，待数据规模扩大后补充。
                   </div>
                 )}
               </div>
             </SectionCard>
-
-            <section className="rounded-[1.5rem] border border-amber-200 bg-amber-50 p-5">
-              <h2 className="text-base font-semibold text-amber-950">风险提示</h2>
-              <p className="mt-2 text-sm leading-7 text-amber-900">
-                {site.riskNote ?? "暂无补充说明，请以现场管理要求为准。"}
-              </p>
-            </section>
-
-            <section className="rounded-[1.5rem] border border-stone-300 bg-stone-50 p-5">
-              <h2 className="text-base font-semibold text-slate-900">免责声明</h2>
-              <p className="mt-2 text-sm leading-7 text-slate-700">
-                本页信息仅作工业遗产点位索引与研究性浏览，不保证实时开放、可进入性、交通组织、
-                场地边界与安全条件完全准确。请勿翻越围挡、进入封闭厂房或进行任何未经许可的探访行为。
-              </p>
-            </section>
           </aside>
+        </div>
+
+        <div className="rounded-[1.5rem] border border-stone-200 bg-stone-100 p-5">
+          <p className="text-xs leading-5 text-slate-500">
+            本页信息仅作研究性浏览，不保证开放状态完全准确，请勿擅自进入未开放区域。
+          </p>
         </div>
       </article>
     </div>
   );
 }
 
-function SectionCard({
-  eyebrow,
-  title,
-  description,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-[2rem] border border-stone-300 bg-white p-6 shadow-[0_10px_30px_rgba(15,23,42,0.08)] sm:p-8">
-      <div className="border-b border-stone-200 pb-5">
-        <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{eyebrow}</p>
-        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">{title}</h2>
-        {description ? <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">{description}</p> : null}
-      </div>
-      <div className="mt-6">{children}</div>
+    <section className="rounded-[1.5rem] border border-stone-300 bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.07)] sm:p-7">
+      <h2 className="text-lg font-semibold tracking-tight text-slate-950">{title}</h2>
+      <div className="mt-5">{children}</div>
     </section>
   );
 }

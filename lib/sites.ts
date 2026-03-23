@@ -19,6 +19,8 @@ import {
   type SiteMapRelationLevel,
   type SiteRegionStat,
   type SiteStatus,
+  type ExplorationRoute,
+  type ExplorationRouteStop,
 } from "@/types/site";
 
 const DEFAULT_IMAGE_URL = "/covers/factory-default.svg";
@@ -402,17 +404,102 @@ export function getSiteMapRelationLevel(currentSite: Site | null, candidate: Sit
 export function getSiteMapMarkerState(
   relationshipSite: Site | null,
   candidate: Site,
-  options: { selectedSiteId: string | null; hoveredSiteId: string | null },
+  options: {
+    selectedSiteId: string | null;
+    hoveredSiteId: string | null;
+    routeSiteIds?: Set<string>;
+    routeStartSiteId?: string | null;
+    routeEndSiteId?: string | null;
+  },
 ): SiteMapMarkerState {
   const isSelected = options.selectedSiteId === candidate.id;
   const isHovered = options.hoveredSiteId === candidate.id;
   const relationLevel = isSelected ? "selected" : getSiteMapRelationLevel(relationshipSite, candidate);
+  const isInRoute = options.routeSiteIds?.has(candidate.id) ?? false;
 
   return {
     relationLevel,
     isSelected,
     isHovered,
+    isInRoute,
+    isRouteStart: isInRoute && options.routeStartSiteId === candidate.id,
+    isRouteEnd: isInRoute && options.routeEndSiteId === candidate.id,
+    isDimmedByRoute: Boolean(options.routeSiteIds?.size) && !isInRoute,
   };
+}
+
+export function getSiteDistance(a: Pick<Site, "lat" | "lng">, b: Pick<Site, "lat" | "lng">): number {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const latDistance = toRadians(b.lat - a.lat);
+  const lngDistance = toRadians(b.lng - a.lng);
+  const startLat = toRadians(a.lat);
+  const endLat = toRadians(b.lat);
+  const haversine =
+    Math.sin(latDistance / 2) ** 2 +
+    Math.cos(startLat) * Math.cos(endLat) * Math.sin(lngDistance / 2) ** 2;
+
+  return 2 * earthRadiusKm * Math.asin(Math.sqrt(haversine));
+}
+
+export function buildExplorationRoute(items: Site[], limit = 5): ExplorationRoute | null {
+  if (items.length < 2) {
+    return null;
+  }
+
+  const routeLimit = Math.min(limit, items.length);
+  const startSite = getExplorationRouteStart(items);
+  const remainingSites = items.filter((site) => site.id !== startSite.id);
+  const orderedSites = [startSite];
+  let currentSite = startSite;
+
+  while (orderedSites.length < routeLimit && remainingSites.length > 0) {
+    const nextSite = remainingSites
+      .slice()
+      .sort((a, b) => {
+        const distanceCompare = getSiteDistance(currentSite, a) - getSiteDistance(currentSite, b);
+        if (distanceCompare !== 0) {
+          return distanceCompare;
+        }
+
+        return a.id.localeCompare(b.id, "zh-CN");
+      })[0];
+
+    orderedSites.push(nextSite);
+    currentSite = nextSite;
+    const nextIndex = remainingSites.findIndex((site) => site.id === nextSite.id);
+    remainingSites.splice(nextIndex, 1);
+  }
+
+  const stops: ExplorationRouteStop[] = orderedSites.map((site, index) => ({
+    order: index + 1,
+    site,
+  }));
+
+  return {
+    stops,
+    siteIds: orderedSites.map((site) => site.id),
+    coordinates: orderedSites.map((site) => [site.lat, site.lng]),
+  };
+}
+
+function getExplorationRouteStart(items: Site[]): Site {
+  const center = items.reduce(
+    (accumulator, site) => ({
+      lat: accumulator.lat + site.lat / items.length,
+      lng: accumulator.lng + site.lng / items.length,
+    }),
+    { lat: 0, lng: 0 },
+  );
+
+  return items.slice().sort((a, b) => {
+    const distanceCompare = getSiteDistance(center, b) - getSiteDistance(center, a);
+    if (distanceCompare !== 0) {
+      return distanceCompare;
+    }
+
+    return a.id.localeCompare(b.id, "zh-CN");
+  })[0];
 }
 
 function buildCategoryExplorationPath(currentSite: Site, allSites: Site[]): SiteExplorationPath | null {
@@ -659,4 +746,50 @@ function getCountEntries(values: string[]): SiteRegionStat[] {
 
 function uniqueSorted(values: string[]): string[] {
   return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b, "zh-CN"));
+}
+
+// ─── Topic filter helpers ─────────────────────────────────────────────────────
+
+export interface TopicFilterRule {
+  category?: string;
+  status?: string;
+  keyword?: string;
+  province?: string;
+  city?: string;
+  level?: string;
+  batch?: string;
+}
+
+export function buildTopicSearchParams(rule: TopicFilterRule): URLSearchParams {
+  const searchParams = new URLSearchParams();
+  if (rule.category) searchParams.set("category", rule.category);
+  if (rule.status) searchParams.set("status", rule.status);
+  if (rule.keyword) searchParams.set("keyword", rule.keyword);
+  if (rule.province) searchParams.set("province", rule.province);
+  if (rule.city) searchParams.set("city", rule.city);
+  if (rule.level) searchParams.set("level", rule.level);
+  if (rule.batch) searchParams.set("batch", rule.batch);
+  return searchParams;
+}
+
+export function matchSiteAgainstTopicFilters(site: Site, rule: TopicFilterRule): boolean {
+  if (rule.category && site.category !== rule.category) return false;
+  if (rule.status && site.status !== rule.status) return false;
+  if (rule.province && site.provinceFull !== rule.province) return false;
+  if (rule.city && site.primaryCity !== rule.city) return false;
+  if (rule.level && site.level !== rule.level) return false;
+  if (rule.batch && site.batch !== rule.batch) return false;
+  if (rule.keyword) {
+    const kw = rule.keyword.toLowerCase();
+    if (!site.searchText.includes(kw)) return false;
+  }
+  return true;
+}
+
+export function countTopicMatches(sites: Site[], rule: TopicFilterRule, curatedIds?: string[]): number {
+  const matched = sites.filter((site) => matchSiteAgainstTopicFilters(site, rule));
+  const extraCount = curatedIds
+    ? curatedIds.filter((id) => !sites.find((s) => s.id === id && matchSiteAgainstTopicFilters(s, rule))).length
+    : 0;
+  return matched.length + extraCount;
 }

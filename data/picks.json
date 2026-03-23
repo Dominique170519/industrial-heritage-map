@@ -1,0 +1,98 @@
+[
+  {
+    "id": "beijing-798",
+    "name": "798 艺术区",
+    "city": "北京",
+    "province": "北京市",
+    "category": "电子工业",
+    "imageUrl": "http://store.is.autonavi.com/showpic/42a5f4dfacfbf2d38d20905cdc15f5ff",
+    "highlight": "包豪斯厂房改建，京城文艺地标",
+    "description": "原国营电子联合厂区，保留了包豪斯式大跨度厂房与工业管廊，现为北京最具影响力的文化创意园区。",
+    "status": "开放参观",
+    "tags": ["工业改造", "文创园", "公共空间"]
+  },
+  {
+    "id": "beijing-shougang-park",
+    "name": "首钢园",
+    "city": "北京",
+    "province": "北京市",
+    "category": "钢铁工业",
+    "imageUrl": "http://store.is.autonavi.com/showpic/1c30e7886c1528deb665e1d63034064f",
+    "highlight": "高炉遗址公园，冬奥落地地标",
+    "description": "以高炉、料仓、工业管廊为核心的首都重工业遗存，已转型为公共文化与会展片区。",
+    "status": "开放参观",
+    "tags": ["工业遗址公园", "公共空间", "工业景观"]
+  },
+  {
+    "id": "qingdao-beer-museum",
+    "name": "青岛啤酒厂旧址",
+    "city": "青岛",
+    "province": "山东省",
+    "category": "食品工业",
+    "imageUrl": "http://store.is.autonavi.com/showpic/7313a5ce93113ea2ae55bbe65a95eb65",
+    "highlight": "百年酿酒厂改造，活态工业博物馆",
+    "description": "始建于1903年的青岛啤酒厂旧址，保留了完整的糖化、发酵、包装车间建筑，已改造为中国啤酒博物馆。",
+    "status": "开放参观",
+    "tags": ["工业博物馆", "活态遗产", "食品工业"]
+  },
+  {
+    "id": "batch1_1",
+    "name": "张裕酿酒公司",
+    "city": "烟台",
+    "province": "山东省",
+    "category": "食品工业",
+    "imageUrl": "http://store.is.autonavi.com/showpic/912c8f911f6f998716c68bc2aa870c5c",
+    "highlight": "亚洲最古老葡萄酒窖，可预约品鉴",
+    "description": "始建于1892年，是中国现存最完整的近代葡萄酒酿造工业遗存，拥有亚洲最古老的地下酒窖。",
+    "status": "开放参观",
+    "tags": ["活态遗产", "可参观", "食品工业"]
+  },
+  {
+    "id": "chongqing-erlings-erchang",
+    "name": "鹅岭二厂",
+    "city": "重庆",
+    "province": "重庆市",
+    "category": "印刷工业",
+    "imageUrl": "http://store.is.autonavi.com/showpic/56a9e903a310218d5b4609b1",
+    "highlight": "印制厂变身网红文创园，山城天台",
+    "description": "原重庆印制二厂旧址，2016年改建为以影视、文创为核心的复合型文创园区，保留旧厂房的工业感与民国建筑元素。",
+    "status": "开放参观",
+    "tags": ["文创园", "工业改造", "公共空间"]
+  },
+  {
+    "id": "nanjing-pukou-station",
+    "name": "浦口火车站旧址",
+    "city": "南京",
+    "province": "江苏省",
+    "category": "铁路交通",
+    "imageUrl": "http://store.is.autonavi.com/showpic/779bd6cfddbe6f859ed04fba8911053a",
+    "highlight": "民国铁路站房，可预约参观",
+    "description": "始建于1914年的津浦铁路终点站，保留完整的英式站房、站台与天桥，《情深深雨蒙蒙》等多部影视作品取景地。",
+    "status": "预约参观",
+    "tags": ["铁路遗产", "民国建筑", "历史空间"]
+  },
+  {
+    "id": "tianjin-minyuan-cotton3",
+    "name": "棉3 创意街区",
+    "city": "天津",
+    "province": "天津市",
+    "category": "纺织工业",
+    "imageUrl": "http://store.is.autonavi.com/showpic/e8440773dbdc3aa66baabb03f49a6acf",
+    "highlight": "天津最大棉纺厂改造，滨河文创带",
+    "description": "原天津第三棉纺织厂旧址，保留了纺织车间、仓库与工业设备，现为天津滨河文化创意产业带核心项目。",
+    "status": "开放参观",
+    "tags": ["工业改造", "文创园", "纺织工业"]
+  },
+  {
+    "id": "wuxi-maoxin-flour",
+    "name": "茂新面粉厂旧址",
+    "city": "无锡",
+    "province": "江苏省",
+    "category": "食品工业",
+    "imageUrl": "http://store.is.autonavi.com/showpic/ecf10f58c96f44aa82ba4e1640089e6d",
+    "highlight": "荣氏企业遗址，改建为文化展示空间",
+    "description": "荣氏企业在无锡创办的早期面粉厂，保留了完整的制粉车间与设备，已改造为文化展示与创意办公复合空间。",
+    "status": "开放参观",
+    "tags": ["工业遗址", "食品工业", "文创空间"]
+  }
+]

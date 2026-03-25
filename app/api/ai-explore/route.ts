@@ -78,7 +78,12 @@ function buildFallbackResult(query: string, allSites: ReturnType<typeof getAllSi
   });
 
   const top = scored
-    .sort((a, b) => b.score - a.score || a.site.name.localeCompare(b.site.name, "zh-CN"))
+    .sort((a, b) => {
+      // Primary: higher score first
+      if (b.score !== a.score) return b.score - a.score;
+      // Secondary: seed by site.id to keep order stable across re-renders
+      return a.site.id.localeCompare(b.site.id, "zh-CN");
+    })
     .slice(0, MAX_SITES);
 
   return {
@@ -133,6 +138,7 @@ export async function POST(req: NextRequest) {
   }
 
   let rawText = "";
+  let usedFallback = false;
 
   try {
     const completion = await client.chat.completions.create({
@@ -150,9 +156,13 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : "未知错误";
     console.error("[AI Explore] LLM call failed:", message);
+    usedFallback = true;
 
     // Auto-fallback on error
-    return NextResponse.json(buildFallbackResult(query, allSites));
+    const fallbackResult = buildFallbackResult(query, allSites);
+    return NextResponse.json(fallbackResult, {
+      headers: { "X-Route-Source": "fallback", "X-Error": message },
+    });
   }
 
   // 5. Parse JSON from response
@@ -221,5 +231,7 @@ export async function POST(req: NextRequest) {
     stops: validatedStops.slice(0, MAX_SITES),
   };
 
-  return NextResponse.json(result);
+  return NextResponse.json(result, {
+    headers: { "X-Route-Source": "llm" },
+  });
 }

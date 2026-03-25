@@ -36,9 +36,17 @@ export default function AIExplorePanel({ onRouteGenerated }: AIExplorePanelProps
         });
 
         const data = await res.json();
+        const routeSource = res.headers.get("X-Route-Source");
 
         if (!res.ok || data.error) {
           throw new Error(data.error ?? `请求失败（${res.status}）`);
+        }
+
+        if (routeSource === "fallback") {
+          const errorNote = data.error ?? null;
+          setErrorMsg("AI 服务暂时不可用，已通过关键词匹配返回结果。请检查 API Key 配置。");
+          setStatus("error");
+          return;
         }
 
         const routeResult: AIRouteResult = data as AIRouteResult;

@@ -17,6 +17,7 @@ export default function AIExplorePanel({ onRouteGenerated }: AIExplorePanelProps
   const [status, setStatus] = useState<AIExplorePanelStatus>("idle");
   const [result, setResult] = useState<AIRouteResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [noticeMsg, setNoticeMsg] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = useCallback(
@@ -27,6 +28,7 @@ export default function AIExplorePanel({ onRouteGenerated }: AIExplorePanelProps
 
       setStatus("loading");
       setErrorMsg(null);
+      setNoticeMsg(null);
 
       try {
         const res = await fetch("/api/ai-explore", {
@@ -42,13 +44,6 @@ export default function AIExplorePanel({ onRouteGenerated }: AIExplorePanelProps
           throw new Error(data.error ?? `请求失败（${res.status}）`);
         }
 
-        if (routeSource === "fallback") {
-          const errorNote = data.error ?? null;
-          setErrorMsg("AI 服务暂时不可用，已通过关键词匹配返回结果。请检查 API Key 配置。");
-          setStatus("error");
-          return;
-        }
-
         const routeResult: AIRouteResult = data as AIRouteResult;
 
         // Persist to sessionStorage so HomeExplorer can read it after mount
@@ -61,6 +56,11 @@ export default function AIExplorePanel({ onRouteGenerated }: AIExplorePanelProps
 
         setResult(routeResult);
         setStatus("success");
+        setNoticeMsg(
+          routeSource === "fallback"
+            ? "AI 服务暂时不可用，当前路线由关键词匹配生成。"
+            : null,
+        );
         onRouteGenerated?.(routeResult);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "未知错误，请重试";
@@ -75,6 +75,7 @@ export default function AIExplorePanel({ onRouteGenerated }: AIExplorePanelProps
     setResult(null);
     setStatus("idle");
     setErrorMsg(null);
+    setNoticeMsg(null);
     setQuery("");
     try {
       sessionStorage.removeItem(STORAGE_KEY);
@@ -212,6 +213,11 @@ export default function AIExplorePanel({ onRouteGenerated }: AIExplorePanelProps
             <div className="mb-5 rounded-2xl border border-[var(--industrial-accent-soft)] bg-[rgba(126,47,47,0.04)] p-5">
               <h3 className="text-lg font-semibold text-[var(--industrial-accent)]">{result.title}</h3>
               <p className="mt-2 text-sm leading-7 text-slate-700">{result.summary}</p>
+              {noticeMsg && (
+                <p className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800">
+                  {noticeMsg}
+                </p>
+              )}
               <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
                 <LoadingSpinner size={12} />
                 由 AI 生成 · 共 {result.stops.length} 个站点

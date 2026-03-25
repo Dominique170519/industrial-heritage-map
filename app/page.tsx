@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import HomeExplorer from "@/components/home-explorer";
 import FeaturedPickSection from "@/components/featured-pick-section";
 import TopicSection from "@/components/topic-section";
+import AIExplorePanel from "@/components/ai-explore-panel";
 import { getAllSites } from "@/lib/sites";
 import topics from "@/data/topics.json";
 
@@ -37,6 +38,11 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* AI 探索入口 */}
+      <Suspense fallback={null}>
+        <AIExplorePanel />
+      </Suspense>
 
       <Suspense
         fallback={

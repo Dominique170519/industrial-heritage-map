@@ -23,7 +23,7 @@ import {
   type ExplorationRouteStop,
 } from "@/types/site";
 
-const DEFAULT_IMAGE_URL = "/covers/factory-default.svg";
+export const DEFAULT_IMAGE_URL = "/covers/factory-default.svg";
 const DEFAULT_PROVINCE = "未知省份";
 const DEFAULT_CITY = "未知城市";
 const SPLIT_PATTERN = /[\/、，,；;｜|]+/;

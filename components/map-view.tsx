@@ -396,7 +396,14 @@ export default function MapView({
           subdomains={BASEMAPS[basemapMode].subdomains}
         />
 
-        {activeRoute ? <Polyline positions={activeRoute.coordinates} pathOptions={{ className: "site-route-line" }} /> : null}
+        {activeRoute ? (
+          <Polyline
+            positions={activeRoute.coordinates}
+            pathOptions={{
+              className: activeRoute.isAiRoute ? "site-ai-route-line" : "site-route-line",
+            }}
+          />
+        ) : null}
 
         <MarkerClusterGroup
           chunkedLoading

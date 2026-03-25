@@ -55,9 +55,8 @@
     "tag": "故事专题",
     "title": "消失的工厂",
     "description": "记录已经停产、搬迁或拆除，但仍留存在城市记忆中的工业地标。",
-    "examples": "沈阳铸造厂旧址 · 重庆建设厂旧址 · 哈尔滨老糖厂相关遗存等",
+    "examples": "本溪湖煤铁公司 · 旅顺船坞 · 洪都机械厂旧址等 45 处",
     "accentClassName": "border-[rgba(143,91,91,0.22)] bg-[rgba(143,91,91,0.1)] text-[rgb(118,71,71)]",
-    "filters": { "keyword": "停用" },
-    "curatedIds": []
+    "filters": { "keyword": "旧址" }
   }
 ]

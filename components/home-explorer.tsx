@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -27,6 +27,7 @@ import type {
   SiteFilters,
   SiteMapBounds,
 } from "@/types/site";
+import type { AIRouteResult } from "@/types/ai-explore";
 import Filters from "@/components/filters";
 
 const MapView = dynamic(() => import("@/components/map-view"), {
@@ -430,7 +431,7 @@ function WorkspaceInspector({
       <aside className="site-workspace-inspector">
         <div className="site-workspace-inspector__section">
           <p className="site-workspace-inspector__eyebrow">Field notes</p>
-          <h2 className="site-workspace-inspector__title">这次挖到了</h2>
+          <h2 className="site-workspace-inspector__title">本次发现</h2>
           <p className="site-workspace-inspector__muted">
             <strong>{visibleCount}</strong> / {totalCount} 处点位。
             {requestedSiteId ? " 链接里的那一处暂时不在当前结果中。" : " 点地图、点地区热区，或者直接翻下方的推荐继续逛。"}
@@ -572,20 +573,23 @@ function WorkspaceInspector({
   }
 
   const image = getPrimarySiteImage(selectedSite);
+  const hasRealImage = image.url !== "/covers/factory-default.svg";
 
   return (
     <aside className="site-workspace-inspector">
       <div className="site-workspace-inspector__section">
         <p className="site-workspace-inspector__eyebrow">Spotlight</p>
         <div className="site-workspace-site-card">
-          <div className="site-workspace-site-card__image-shell">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={image.url}
-              alt={image.alt ?? selectedSite.name}
-              className="site-workspace-site-card__image"
-            />
-          </div>
+          {hasRealImage ? (
+            <div className="site-workspace-site-card__image-shell">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={image.url}
+                alt={image.alt ?? selectedSite.name}
+                className="site-workspace-site-card__image"
+              />
+            </div>
+          ) : null}
           <div className="site-workspace-site-card__body">
             <div className="site-workspace-site-card__tags">
               <span className="site-workspace-site-card__status">{selectedSite.status}</span>
@@ -864,6 +868,64 @@ export default function HomeExplorer({
 
     setStoredRoute(nextRoute);
     handleSelectSite(nextRoute.stops[0]?.site.id ?? null);
+  }
+
+  // ─── AI route from sessionStorage ────────────────────────────────────────
+  const STORAGE_KEY = "ihm-ai-route-result";
+  const AI_SESSION_KEY = "ihm-ai-route-active";
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY);
+      const isAiSession = sessionStorage.getItem(AI_SESSION_KEY) === "1";
+
+      if (!raw || !isAiSession) return;
+
+      const aiResult: AIRouteResult = JSON.parse(raw);
+
+      if (!aiResult?.stops?.length) return;
+
+      const route = buildExplorationRouteFromAi(aiResult, sites);
+      if (!route) return;
+
+      setStoredRoute(route);
+
+      // Select the first AI site and scroll to map
+      if (route.stops[0]) {
+        handleSelectSite(route.stops[0].site.id);
+      }
+
+      // Clear sessionStorage so refresh doesn't re-trigger
+      sessionStorage.removeItem(AI_SESSION_KEY);
+    } catch {
+      // sessionStorage may be unavailable or data corrupted — ignore
+    }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function buildExplorationRouteFromAi(
+    aiResult: AIRouteResult,
+    allSites: Site[],
+  ): ExplorationRoute | null {
+    const siteMap = new Map(allSites.map((s) => [s.id, s]));
+    const orderedSites: Site[] = [];
+
+    for (const stop of aiResult.stops) {
+      const site = siteMap.get(stop.siteId);
+      if (site) {
+        orderedSites.push(site);
+      }
+    }
+
+    if (orderedSites.length === 0) return null;
+
+    return {
+      stops: orderedSites.map((site, index) => ({ order: index + 1, site })),
+      siteIds: orderedSites.map((s) => s.id),
+      coordinates: orderedSites.map((s) => [s.lat, s.lng] as [number, number]),
+      isAiRoute: true,
+    };
   }
 
   function handleResetMap() {

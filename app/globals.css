@@ -215,6 +215,22 @@ a {
   filter: drop-shadow(0 6px 14px rgba(126, 47, 47, 0.18));
 }
 
+/* AI-generated route line: teal/green to visually distinguish from manual route */
+.site-ai-route-line {
+  stroke: rgba(47, 127, 120, 0.88);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 6px 16px rgba(47, 127, 120, 0.28));
+  stroke-dasharray: 10 4;
+  animation: ai-route-dash 1.2s linear infinite;
+}
+
+@keyframes ai-route-dash {
+  from { stroke-dashoffset: 14; }
+  to   { stroke-dashoffset: 0;   }
+}
+
 .site-cluster {
   display: flex;
   align-items: center;
@@ -1855,7 +1871,7 @@ a {
 
 @media (min-width: 640px) {
   .featured-pick-single__image-shell {
-    width: 45%;
+    width: 33%;
     aspect-ratio: unset;
   }
 }

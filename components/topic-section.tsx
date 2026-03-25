@@ -33,6 +33,12 @@ interface TopicSectionProps {
 export default function TopicSection({ topics, sites }: TopicSectionProps) {
   const router = useRouter();
 
+  // Only show thumbs that are NOT the default fallback image
+  const hasRealImage = (site: Site): boolean => {
+    const primary = getPrimarySiteImage(site);
+    return primary.url !== "/covers/factory-default.svg";
+  };
+
   const topicCounts = useMemo(() => {
     return topics.map((topic) => {
       const count = countTopicMatches(sites, topic.filters, topic.curatedIds);
@@ -42,7 +48,18 @@ export default function TopicSection({ topics, sites }: TopicSectionProps) {
         .filter(Boolean) as Site[];
       const allMatched = [...matched, ...curatedExtra];
       const unique = allMatched.filter((s, i, arr) => arr.findIndex((x) => x.id === s.id) === i);
-      const thumbs = unique.slice(0, 3).map((s) => getPrimarySiteImage(s));
+
+      // Only keep sites with real images, deduplicate by image URL to avoid visual repeats
+      const usedUrls = new Set<string>();
+      const withImages = unique.filter((s) => {
+        if (!hasRealImage(s)) return false;
+        const url = getPrimarySiteImage(s).url;
+        if (usedUrls.has(url)) return false;
+        usedUrls.add(url);
+        return true;
+      });
+      const thumbs = withImages.slice(0, 3).map((s) => getPrimarySiteImage(s));
+
       return { ...topic, count, thumbs };
     });
   }, [topics, sites]);
@@ -55,17 +72,17 @@ export default function TopicSection({ topics, sites }: TopicSectionProps) {
 
   return (
     <section className="w-full px-4 sm:px-5 lg:px-6 xl:px-7 2xl:px-8">
-      <div className="rounded-[28px] border border-stone-200 border-b-2 bg-white p-5 shadow-[0_16px_38px_rgba(15,23,42,0.08)] sm:p-6 lg:p-7" style={{ borderBottomColor: "rgba(126,47,47,0.4)" }}>
+      <div style={{ border: "1px solid rgba(226, 232, 240, 0.65)", background: "linear-gradient(160deg, rgba(255, 255, 255, 0.80) 0%, rgba(241, 245, 249, 0.60) 100%)" }} className="rounded-[28px] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.08)] sm:p-6 lg:p-7">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em] text-slate-400">
               Thematic Collections
             </p>
             <h2 className="featured-picks-header__title" style={{ marginTop: "4px" }}>
-              专题精选
+              探索导览
             </h2>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              {topics.length} 个专题，按工业门类、历史阶段与遗产现状梳理全国工业遗产
+              {topics.length} 个主题，带你按工业门类、历史阶段与遗产现状深入工业遗产
             </p>
           </div>
           <a href="#map-explorer" className="shrink-0 text-sm font-medium text-slate-500 hover:text-[var(--industrial-accent)] transition">

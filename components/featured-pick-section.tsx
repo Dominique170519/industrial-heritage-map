@@ -199,7 +199,7 @@ export default function FeaturedPickSection() {
         <div className="featured-picks-header">
           <div className="featured-picks-header__text">
             <p className="featured-picks-header__eyebrow">Curated for Visit</p>
-            <h2 className="featured-picks-header__title">工业遗产 · 精选推荐</h2>
+            <h2 className="featured-picks-header__title">编辑精选</h2>
             <p className="featured-picks-header__sub">
               可参观 · 改造优质 · 实景体验
             </p>

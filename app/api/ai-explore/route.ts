@@ -8,7 +8,7 @@ const API_KEY = process.env.OPENAI_API_KEY ?? process.env.MINIMAX_API_KEY ?? "";
 const BASE_URL =
   process.env.OPENAI_BASE_URL ??
   (API_KEY.startsWith("eyJ") ? "https://api.minimax.chat/v1" : "https://api.openai.com/v1");
-const MODEL = process.env.AI_MODEL ?? "MiniMax-Text-01";
+const MODEL = process.env.AI_MODEL ?? "abab6.5s-chat";
 // MiniMax-specific: pass GroupId in request headers
 const GROUP_ID = process.env.MINIMAX_GROUP_ID ?? "";
 
@@ -126,12 +126,10 @@ export async function POST(req: NextRequest) {
   const siteIds = new Set(allSites.map((s) => s.id));
   const siteMap = new Map(allSites.map((s) => [s.id, s]));
 
-  // 4. Call LLM
-  const requestHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  // 4. Call LLM — MiniMax requires GroupId in request body for OpenAI-compatible endpoint
+  const extraBody: Record<string, string> = {};
   if (GROUP_ID) {
-    requestHeaders["GroupId"] = GROUP_ID;
+    extraBody["group_id"] = GROUP_ID;
   }
 
   let rawText = "";
@@ -142,6 +140,7 @@ export async function POST(req: NextRequest) {
       messages: [{ role: "user", content: buildPrompt(query, allSites) }],
       temperature: 0.6,
       max_tokens: 1200,
+      ...(Object.keys(extraBody).length > 0 ? { extra_body: extraBody } : {}),
     });
 
     rawText = completion.choices[0]?.message?.content?.trim() ?? "";

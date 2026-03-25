@@ -14,6 +14,8 @@ function getAccentColor(accentClassName: string): string {
   return "#7e2f2f";
 }
 
+const SHARED_THUMB_DEDUP_TOPIC_IDS = new Set(["golden", "adaptive", "steel"]);
+
 export interface TopicDefinition {
   id: string;
   tag: string;
@@ -40,6 +42,8 @@ export default function TopicSection({ topics, sites }: TopicSectionProps) {
   };
 
   const topicCounts = useMemo(() => {
+    const globallyUsedSiteIds = new Set<string>();
+
     return topics.map((topic) => {
       const count = countTopicMatches(sites, topic.filters, topic.curatedIds);
       const matched = sites.filter((site) => matchSiteAgainstTopicFilters(site, topic.filters));
@@ -58,7 +62,19 @@ export default function TopicSection({ topics, sites }: TopicSectionProps) {
         usedUrls.add(url);
         return true;
       });
-      const thumbs = withImages.slice(0, 3).map((s) => getPrimarySiteImage(s));
+
+      const thumbSites = withImages.filter((site) => {
+        if (!SHARED_THUMB_DEDUP_TOPIC_IDS.has(topic.id)) {
+          return true;
+        }
+        return !globallyUsedSiteIds.has(site.id);
+      }).slice(0, 3);
+
+      if (SHARED_THUMB_DEDUP_TOPIC_IDS.has(topic.id)) {
+        thumbSites.forEach((site) => globallyUsedSiteIds.add(site.id));
+      }
+
+      const thumbs = thumbSites.map((site) => getPrimarySiteImage(site));
 
       return { ...topic, count, thumbs };
     });

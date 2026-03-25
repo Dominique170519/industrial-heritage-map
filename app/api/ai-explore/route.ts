@@ -184,17 +184,15 @@ export async function POST(req: NextRequest) {
       stop &&
       typeof stop === "object" &&
       "siteId" in stop &&
-      typeof stop.siteId === "string" &&
-      siteIds.has(stop.siteId) &&
-      !usedIds.has(stop.siteId)
+      typeof (stop as { siteId?: string }).siteId === "string" &&
+      siteIds.has((stop as { siteId: string }).siteId) &&
+      !usedIds.has((stop as { siteId: string }).siteId)
     ) {
-      usedIds.add(stop.siteId);
+      const s = stop as { siteId: string; explanation?: string };
+      usedIds.add(s.siteId);
       validatedStops.push({
-        siteId: stop.siteId,
-        explanation:
-          typeof stop.explanation === "string" && stop.explanation.trim()
-            ? stop.explanation.trim()
-            : siteMap.get(stop.siteId)?.name ?? stop.siteId,
+        siteId: s.siteId,
+        explanation: s.explanation?.trim() ? s.explanation.trim() : siteMap.get(s.siteId)?.name ?? s.siteId,
       });
     }
   }
